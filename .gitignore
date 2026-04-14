@@ -1,0 +1,37 @@
+# Variables d'environnement (secrets, clés API)
+.env
+.env.*
+!.env.example
+
+# Dépendances
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Build / dist
+dist/
+build/
+*.egg-info/
+.next/
+out/
+
+# Logs
+*.log
+logs/
+
+# Éditeurs
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code — inclure les fichiers de config (.claude/ est suivi par git)
+# Exclure uniquement les fichiers potentiellement sensibles dans .claude/
+.claude/settings.local.json

@@ -1,0 +1,93 @@
+## 📌 1. Présentation du Projet
+
+L'objectif est de mettre en place un système automatisé de gestion des repas basé sur des lecteurs biométriques **Morpho Sigma Lite+**. Le système doit identifier l'employé, vérifier son éligibilité, enregistrer le type de repas choisi et imprimer un ticket thermique pour le restaurateur.
+
+## ⚙️ 2. Architecture Technique
+
+- **Mode de communication :** TCP en temps réel depuis les lecteurs.
+    
+- **Base de données :** SQL Server Express indépendante.
+    
+- **Interface :** Application Web (multi-accès).
+    
+- **Entrées de données (Trame TCP) :** Matricule, Date, Heure, ID Lecteur (S/N), Statut bouton E/S.
+    
+- **Logique des boutons :** * Bouton **ENTRÉE** = Plat Chaud (Repas Type 1).
+    
+    - Bouton **SORTIE** = Sandwich / Repas froid (Repas Type 2).
+        
+
+---
+
+## 🚀 3. Roadmap de Développement
+
+### 🟢 Phase 1 : MVP (Produit Minimum Viable)
+
+**Focus : Employés SEBN et Gardiens + Facturation de base.**
+
+- **Gestion des Lecteurs :** Configuration d'une liste de plusieurs lecteurs avec Nom et adresse IP.
+    
+- **Base Employés :** Import initial depuis la base de données Morphomanager (Matricule, Nom, Prénom).
+    
+- **Règles d'accès :** * Standard : 1 repas par jour.
+    
+    - Gardiens : 2 repas par jour (configurés manuellement en base).
+        
+- **Impression Ticket :** Génération automatique (Matricule, Nom, Prénom, Date, Heure, N° Ticket, Type de repas, ID pointeuse) depuis une imprimante thermiques, à prévoir une imprimante par lecteur .
+    
+- **Export Excel :** Extraction des pointages par période (date à date) avec totaux par type de repas pour le restaurateur.
+    
+- **Dashboards :** État en temps réel du nombre de repas accordés.
+    
+- **Accès :** Profil "Admin SEBN" et profil "Responsable Cantine".
+    
+
+### 🔵 Phase 2 : V1 (Automatisation & Shifts)
+
+**Focus : Réduction des interventions manuelles.**
+
+- **Moteur de Shifts :** Attribution automatique des repas selon l'heure.
+    
+    - Matin : 08h00 – 12h00.
+        
+    - Administration : 12h00 – 14h00.
+        
+    - Après-midi : 16h00 – 21h00.
+        
+    - Nuit : 00h00 – 04h00.
+        
+- **Synchronisation Auto :** Lien dynamique avec MorphoManager pour gérer les nouveaux arrivants et les blocages (départs).
+    
+- **Supervision :** Statut de connexion des lecteurs et imprimantes en direct.
+    
+
+### 🟡 Phase 3 : V2 (Périmètre Complet)
+
+**Focus : Visiteurs, Stagiaires et Heures Supplémentaires.**
+
+- **Profils Externes :** Gestion des Stagiaires, Sous-traitants et Prestataires.
+    
+- **Module Visiteurs :** Saisie manuelle par l'Admin SEBN avec période de validité (date à date).
+    
+- **Heures Supplémentaires :** Import Excel des listes d'employés autorisés à un 2ème repas (Lundi-Vendredi).
+    
+- **Analytique :** Rapports croisés par lecteurs, catégorie d'utilisateur et zone, repas, types de repas.
+    
+
+---
+
+---
+
+## 📝 4. Contenu du Ticket Thermique (MVP)
+
+1. **En-tête :** CANTINE SEBN
+    
+2. **Identité :** Matricule - Nom & Prénom
+    
+3. **Détails :** Date et Heure de passage
+    
+4. **Repas :** TYPE DE REPAS (PLAT ou SANDWICH)
+    
+5. **Compteur :** Ticket N° XXXXX
+    
+6. **Pointeuse :** Zone de pointage
