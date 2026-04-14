@@ -199,3 +199,52 @@ cd cantine-web
 npm install
 npm run dev
 ```
+
+---
+
+## 🎨 Style Visuel
+
+- Interface claire et minimaliste
+- Pas de mode sombre pour le MVP
+
+---
+
+## 🔒 Contraintes et Politiques
+
+- Ne jamais exposer les clés API au client (front-end)
+- Préférer les composants existants plutôt que d'ajouter de nouvelles bibliothèques UI
+
+---
+
+## ✅ Tests UI Obligatoires
+
+À la fin de chaque développement impliquant l'interface graphique :
+- Lancer les tests via le skill Playwright (`/playwright-skill`)
+- L'interface doit être **responsive**, **fonctionnelle** et **répondre au besoin développé**
+
+---
+
+## 📚 Documentation
+
+Les spécifications fonctionnelles et techniques sont dans :
+- [`prd.md`](./prd.md) — Objectif du projet, fonctionnalités, roadmap
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — Architecture globale, stack, schéma BDD, flux de traitement
+
+---
+
+## 🔍 Context7 — Règle d'Utilisation Automatique
+
+Utiliser **toujours** Context7 (MCP) dans les cas suivants, **sans attendre une demande explicite** :
+- Génération de code impliquant une bibliothèque (React, EF Core, ASP.NET Core, Ant Design…)
+- Étapes de configuration ou d'installation
+- Documentation d'une bibliothèque ou d'une API
+
+Séquence obligatoire : `mcp__context7__resolve-library-id` → `mcp__context7__query-docs`
+
+---
+
+## 🌐 Langue des Spécifications
+
+- Toutes les spécifications (OpenSpec inclus) sont rédigées **en français**
+- Les sections `Purpose` et `Scenarios` des specs OpenSpec sont **en français**
+- Seuls les titres de `Requirements` restent **en anglais** avec les mots-clés `SHALL` / `MUST` (requis pour la validation OpenSpec)
