@@ -1,0 +1,36 @@
+# Cursorrules — Cantine SEBN
+
+## Projet
+Système automatisé de gestion des repas — lecteurs biométriques Morpho Sigma Lite+.
+Stack : ASP.NET Core 8 + React 18 + TypeScript + Ant Design 5 + SQL Server Express 2022.
+
+## Règles C# (CRITIQUE)
+- `Cantine.Core` : entités, interfaces, DTOs UNIQUEMENT — zéro import EF Core, System.Net ou librairie externe
+- `Cantine.Infrastructure` : implémentations EF Core, TCP, ESC/POS, Excel
+- `Cantine.TcpListener` : BackgroundService wrappant MorphoFrameParser uniquement
+- `Cantine.API` : controllers minces — AUCUNE logique métier, déléguer aux services
+- Toujours `async/await` pour I/O (BDD, réseau, impression)
+- Nommage : PascalCase classes/méthodes, camelCase variables locales
+
+## Règles React/TypeScript
+- Zéro `any` sans commentaire justificatif
+- Tous les appels API passent EXCLUSIVEMENT par `src/api/axios.ts`
+- TanStack Query pour tout l'état serveur
+- `EventSource` natif pour SSE — jamais de librairie tierce
+- Composants page → `src/pages/`, composants réutilisables → `src/components/`
+
+## Sécurité
+- `[Authorize(Roles = "AdminSEBN")]` sur tous les endpoints admin
+- `[Authorize(Roles = "AdminSEBN,ResponsableCantine")]` sur dashboard et export
+- Jamais de token JWT dans les logs
+- Passwords hashés via ASP.NET Core Identity uniquement
+
+## Entity Framework
+- Migrations dans `Cantine.Infrastructure/Data/Migrations/`
+- JAMAIS modifier une migration existante — créer une nouvelle
+- `AsNoTracking()` pour toutes les requêtes en lecture seule
+
+## Git
+- Cycle obligatoire : `proposal → validation → apply → test → archive → commit`
+- Une feature à la fois
+- Format commit : `feat: [nom-feature]`

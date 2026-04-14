@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
+      "description": "Documentation à jour pour ASP.NET Core 8, EF Core 8, React 18, Ant Design 5, TanStack Query"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "description": "Tests e2e automatisés pour le frontend React (tests/e2e/)"
+    }
+  }
+}
