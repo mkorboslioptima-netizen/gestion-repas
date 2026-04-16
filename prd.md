@@ -12,9 +12,9 @@ L'objectif est de mettre en place un système automatisé de gestion des repas b
     
 - **Entrées de données (Trame TCP) :** Matricule, Date, Heure, ID Lecteur (S/N), Statut bouton E/S.
     
-- **Logique des boutons :** * Bouton **ENTRÉE** = Plat Chaud (Repas Type 1).
+- **Logique des boutons :** * Bouton **SORTIE** (`O` dans la trame TCP) = Plat Chaud (Repas Type 1).
     
-    - Bouton **SORTIE** = Sandwich / Repas froid (Repas Type 2).
+    - Bouton **ENTRÉE** (`I` dans la trame TCP) = Sandwich / Repas froid (Repas Type 2).
         
 
 ---
