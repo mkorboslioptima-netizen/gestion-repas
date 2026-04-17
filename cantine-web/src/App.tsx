@@ -1,118 +1,162 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider, Layout, Menu, Select, Typography } from 'antd';
-import { SettingOutlined, GlobalOutlined, TeamOutlined, DashboardOutlined } from '@ant-design/icons';
+import { ConfigProvider, Layout } from 'antd';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { SiteProvider, useSite } from './context/SiteContext';
-import PrivateRoute from './auth/PrivateRoute';
+import { useQuery } from '@tanstack/react-query';
+import { getSites } from './api/sites';
 import LecteursPage from './pages/admin/LecteursPage';
 import SitesPage from './pages/admin/SitesPage';
 import EmployesPage from './pages/admin/EmployesPage';
 import DashboardPage from './pages/DashboardPage';
-import { useQuery } from '@tanstack/react-query';
-import { getSites } from './api/sites';
+import LoginPage from './pages/LoginPage';
 import 'antd/dist/reset.css';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 
-
-const { Sider, Content } = Layout;
-const { Title } = Typography;
-
+const { Content } = Layout;
 const queryClient = new QueryClient();
 
-function SiteSelector() {
-  const { roles } = useAuth();
-  const { siteId, setSiteId } = useSite();
-  const isAdmin = roles.includes('AdminSEBN');
+// ── Mapping route → titre page ────────────────────────────────────────────
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'Tableau de bord',
+  '/admin/lecteurs': 'Lecteurs',
+  '/admin/employes': 'Employés',
+  '/admin/sites': 'Sites',
+};
 
-  const { data: sites = [] } = useQuery({
-    queryKey: ['sites'],
-    queryFn: getSites,
-    enabled: isAdmin,
-  });
-
-  if (!isAdmin || sites.length < 2) return null;
+// ── Header bar ─────────────────────────────────────────────────────────────
+function AppHeader() {
+  const { siteId } = useSite();
+  const location = useLocation();
+  const title = PAGE_TITLES[location.pathname] ?? 'MealOps';
 
   return (
-    <div style={{ padding: '8px 16px' }}>
-      <Select
-        style={{ width: '100%' }}
-        value={siteId ?? '__global__'}
-        onChange={(v) => setSiteId(v === '__global__' ? null : v)}
-        size="small"
-      >
-        <Select.Option value="__global__">Tous les sites</Select.Option>
-        {sites.map((s) => (
-          <Select.Option key={s.siteId} value={s.siteId}>{s.nom}</Select.Option>
-        ))}
-      </Select>
+    <div className="app-header">
+      <span className="app-header-title">{title}</span>
+      {siteId && <span className="app-header-site">{siteId}</span>}
+      <span className="app-header-date">
+        {dayjs().format('ddd D MMM YYYY')}
+      </span>
     </div>
   );
 }
 
-function AppLayout() {
-  const { roles } = useAuth();
-  const isAdmin = true; // TODO: remettre `roles.includes('AdminSEBN')` avant mise en production
+// ── Sidebar ────────────────────────────────────────────────────────────────
+function Sidebar() {
+  const { roles, logout } = useAuth();
+  const isAdmin = true; // TODO: remettre roles.includes('AdminSEBN') avant production
   void roles;
 
-  const menuItems = [
-    {
-      key: '/',
-      icon: <DashboardOutlined />,
-      label: <Link to="/">Dashboard</Link>,
-    },
-    {
-      key: '/admin/lecteurs',
-      icon: <SettingOutlined />,
-      label: <Link to="/admin/lecteurs">Lecteurs</Link>,
-    },
-    ...(isAdmin
-      ? [
-          {
-            key: '/admin/employes',
-            icon: <TeamOutlined />,
-            label: <Link to="/admin/employes">Employés</Link>,
-          },
-          {
-            key: '/admin/sites',
-            icon: <GlobalOutlined />,
-            label: <Link to="/admin/sites">Sites</Link>,
-          },
-        ]
-      : []),
-  ];
+  const { data: sites = [] } = useQuery({
+    queryKey: ['sites'],
+    queryFn: getSites,
+  });
+
+  const initials = 'AD';
+  const avatarColor = '#2563eb';
+  const userName = 'Admin SEBN';
+  const userRole = 'AdminSEBN';
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark" width={220}>
-        <div style={{ padding: '16px 24px' }}>
-          <Title level={5} style={{ color: '#fff', margin: 0 }}>Cantine SEBN</Title>
+    <div style={{
+      width: 220, minWidth: 220, background: 'var(--sidebar)',
+      display: 'flex', flexDirection: 'column', height: '100vh', flexShrink: 0,
+    }}>
+      {/* Marque */}
+      <div className="sb-brand">
+        <div className="sb-brand-icon">M</div>
+        <div>
+          <div className="sb-brand-name">MealOps</div>
+          <div className="sb-brand-sub">v1.0 • {sites.length} sites</div>
         </div>
-        <SiteSelector />
-        <Menu theme="dark" mode="inline" items={menuItems} />
-      </Sider>
-      <Layout>
-        <Content style={{ background: '#f5f5f5' }}>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            {/* TODO: remettre PrivateRoute sur toutes les routes avant mise en production */}
-            <Route path="/admin/lecteurs" element={<LecteursPage />} />
-            <Route path="/admin/employes" element={<EmployesPage />} />
-            <Route path="/admin/sites" element={<SitesPage />} />
-            <Route path="/unauthorized" element={<div style={{ padding: 24 }}>Accès refusé.</div>} />
-            <Route path="/login" element={<div style={{ padding: 24 }}>Page de connexion (à implémenter).</div>} />
-          </Routes>
-        </Content>
-      </Layout>
-    </Layout>
+      </div>
+
+      {/* Navigation */}
+      <nav className="sb-nav">
+        <div className="sb-section">
+          <div className="sb-section-label">Principal</div>
+          <NavLink to="/" end className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+            <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+            Tableau de bord
+          </NavLink>
+        </div>
+
+        {isAdmin && (
+          <div className="sb-section">
+            <div className="sb-section-label">Administration</div>
+            <NavLink to="/admin/lecteurs" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+              <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+              Lecteurs
+            </NavLink>
+            <NavLink to="/admin/employes" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+              <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
+              Employés
+            </NavLink>
+            <NavLink to="/admin/sites" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+              <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Sites
+            </NavLink>
+          </div>
+        )}
+      </nav>
+
+      {/* Pied de page */}
+      <div className="sb-footer">
+        <div className="sb-user">
+          <div className="sb-avatar" style={{ background: avatarColor }}>{initials}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="sb-uname">{userName}</div>
+            <div className="sb-urole">{userRole}</div>
+          </div>
+          <button className="sb-logout" onClick={logout} title="Déconnexion">
+            <svg viewBox="0 0 24 24">
+              <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
+// ── Layout principal ───────────────────────────────────────────────────────
+function AppLayout() {
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <Sidebar />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+        <AppHeader />
+        <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/admin/lecteurs" element={<LecteursPage />} />
+            <Route path="/admin/employes" element={<EmployesPage />} />
+            <Route path="/admin/sites" element={<SitesPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/unauthorized" element={<div style={{ padding: 24 }}>Accès refusé.</div>} />
+          </Routes>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── App root ───────────────────────────────────────────────────────────────
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SiteProvider>
-          <ConfigProvider>
+          <ConfigProvider theme={{ token: {
+            colorPrimary: '#2563eb',
+            borderRadius: 8,
+            colorBgContainer: '#ffffff',
+            colorBgLayout: '#f8fafc',
+            colorBorder: '#e2e8f0',
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          } }}>
             <BrowserRouter>
               <AppLayout />
             </BrowserRouter>

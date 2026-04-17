@@ -168,12 +168,10 @@ export default function EmployesPage() {
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={3} style={{ marginBottom: 24 }}>Employés</Title>
-
+    <div style={{ padding: 18 }}>
       {/* ── Section statistiques par site ── */}
-      <Title level={5} style={{ marginBottom: 12 }}>État par site</Title>
-      <Row gutter={[16, 0]} style={{ marginBottom: 24 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text2)' }}>État par site</div>
+      <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
         {statsLoading
           ? <Col><Text type="secondary">Chargement...</Text></Col>
           : stats.map((s) => (
@@ -184,7 +182,7 @@ export default function EmployesPage() {
       </Row>
 
       {/* ── Section import / synchro ── */}
-      <div style={{ background: '#fff', borderRadius: 8, padding: 24, maxWidth: 560, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 32 }}>
+      <div className="admin-card" style={{ maxWidth: 560, marginBottom: 24, padding: 20 }}>
         <Title level={5} style={{ marginBottom: 8 }}>Import depuis MorphoManager</Title>
         <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
           Importe ou met à jour les employés d'un site spécifique. Opération idempotente — sans doublons ni désactivation.

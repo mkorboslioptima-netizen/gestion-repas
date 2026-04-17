@@ -103,19 +103,44 @@ export default function SitesPage() {
   });
 
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={3} style={{ marginBottom: 24 }}>Gestion des sites</Title>
+    <div style={{ padding: 18 }}>
+      {/* Grille de site-cards + config Morpho */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>Sites actifs</span>
+      </div>
 
       {isLoading ? (
         <Spin size="large" />
       ) : (
-        <Row gutter={[24, 0]}>
-          {sites.map((site) => (
-            <Col key={site.siteId} xs={24} xl={12}>
-              <MorphoConfigCard site={site} />
-            </Col>
-          ))}
-        </Row>
+        <>
+          {/* Cards visuelles par site */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, marginBottom: 24 }}>
+            {sites.map((site) => (
+              <div key={site.siteId} className="site-card">
+                <div className="site-card-top">
+                  <span className="site-card-name">{site.nom}</span>
+                  <span className="site-card-badge-active">
+                    <span className="sdot sdot-online" />
+                    {site.actif ? 'Actif' : 'Inactif'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 8 }}>{site.siteId}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Config MorphoManager par site */}
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text2)' }}>
+            Configuration MorphoManager
+          </div>
+          <Row gutter={[16, 16]}>
+            {sites.map((site) => (
+              <Col key={site.siteId} xs={24} xl={12}>
+                <MorphoConfigCard site={site} />
+              </Col>
+            ))}
+          </Row>
+        </>
       )}
     </div>
   );
