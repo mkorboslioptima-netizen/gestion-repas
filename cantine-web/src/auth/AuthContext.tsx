@@ -3,8 +3,19 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 interface AuthContextValue {
   token: string | null;
   roles: string[];
-  login: (token: string, roles: string[]) => void;
+  siteId: string | null;
+  login: (token: string) => void;
   logout: () => void;
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decoded);
+  } catch {
+    return {};
+  }
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -18,23 +29,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return [];
     }
   });
+  const [siteId, setSiteId] = useState<string | null>(() => localStorage.getItem('siteId'));
 
-  const login = (t: string, r: string[]) => {
+  const login = (t: string) => {
+    const payload = decodeJwtPayload(t);
+    const role = (payload['role'] as string) ?? '';
+    const sid = (payload['siteId'] as string) ?? null;
+
     localStorage.setItem('token', t);
-    localStorage.setItem('roles', JSON.stringify(r));
+    localStorage.setItem('roles', JSON.stringify(role ? [role] : []));
+    if (sid) localStorage.setItem('siteId', sid);
+    else localStorage.removeItem('siteId');
+
     setToken(t);
-    setRoles(r);
+    setRoles(role ? [role] : []);
+    setSiteId(sid);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('roles');
+    localStorage.removeItem('siteId');
     setToken(null);
     setRoles([]);
+    setSiteId(null);
   };
 
   return (
-    <AuthContext.Provider value={{ token, roles, login, logout }}>
+    <AuthContext.Provider value={{ token, roles, siteId, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

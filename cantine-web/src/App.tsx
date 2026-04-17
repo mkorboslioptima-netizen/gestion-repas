@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider, Layout } from 'antd';
+import { ConfigProvider } from 'antd';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import PrivateRoute from './auth/PrivateRoute';
 import { SiteProvider, useSite } from './context/SiteContext';
 import { useQuery } from '@tanstack/react-query';
 import { getSites } from './api/sites';
@@ -15,7 +16,6 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
 dayjs.locale('fr');
 
-const { Content } = Layout;
 const queryClient = new QueryClient();
 
 // ── Mapping route → titre page ────────────────────────────────────────────
@@ -30,7 +30,7 @@ const PAGE_TITLES: Record<string, string> = {
 function AppHeader() {
   const { siteId } = useSite();
   const location = useLocation();
-  const title = PAGE_TITLES[location.pathname] ?? 'MealOps';
+  const title = PAGE_TITLES[location.pathname] ?? 'Cantine SEBN';
 
   return (
     <div className="app-header">
@@ -45,19 +45,19 @@ function AppHeader() {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 function Sidebar() {
-  const { roles, logout } = useAuth();
-  const isAdmin = true; // TODO: remettre roles.includes('AdminSEBN') avant production
-  void roles;
+  const { roles, logout, siteId: authSiteId } = useAuth();
+  const isAdmin = roles.includes('AdminSEBN');
 
   const { data: sites = [] } = useQuery({
     queryKey: ['sites'],
     queryFn: getSites,
   });
 
-  const initials = 'AD';
-  const avatarColor = '#2563eb';
-  const userName = 'Admin SEBN';
-  const userRole = 'AdminSEBN';
+  const role = roles[0] ?? '';
+  const initials = role === 'AdminSEBN' ? 'AD' : 'RC';
+  const avatarColor = role === 'AdminSEBN' ? '#2563eb' : '#059669';
+  const userName = role === 'AdminSEBN' ? 'Admin SEBN' : (authSiteId ?? 'Responsable');
+  const userRole = role;
 
   return (
     <div style={{
@@ -68,7 +68,7 @@ function Sidebar() {
       <div className="sb-brand">
         <div className="sb-brand-icon">M</div>
         <div>
-          <div className="sb-brand-name">MealOps</div>
+          <div className="sb-brand-name">Cantine SEBN</div>
           <div className="sb-brand-sub">v1.0 • {sites.length} sites</div>
         </div>
       </div>
@@ -121,8 +121,11 @@ function Sidebar() {
   );
 }
 
-// ── Layout principal ───────────────────────────────────────────────────────
-function AppLayout() {
+// ── Layout authentifié ─────────────────────────────────────────────────────
+function AuthenticatedLayout() {
+  const { token } = useAuth();
+  if (!token) return <Navigate to="/login" replace />;
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
@@ -132,14 +135,38 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/admin/lecteurs" element={<LecteursPage />} />
-            <Route path="/admin/employes" element={<EmployesPage />} />
-            <Route path="/admin/sites" element={<SitesPage />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/admin/employes"
+              element={
+                <PrivateRoute requiredRole="AdminSEBN">
+                  <EmployesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/sites"
+              element={
+                <PrivateRoute requiredRole="AdminSEBN">
+                  <SitesPage />
+                </PrivateRoute>
+              }
+            />
             <Route path="/unauthorized" element={<div style={{ padding: 24 }}>Accès refusé.</div>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Layout principal ───────────────────────────────────────────────────────
+function AppLayout() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/*" element={<AuthenticatedLayout />} />
+    </Routes>
   );
 }
 

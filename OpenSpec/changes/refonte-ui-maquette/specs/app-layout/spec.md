@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Sidebar avec sections et avatar
-La sidebar SHALL afficher : logo MealOps + sous-titre (version + nb sites), sections de navigation labellisées ("Principal", "Administration"), items avec icône SVG et état actif visuel (`background: rgba(37,99,235,.28)`), et un pied de page avec avatar coloré, nom, rôle et bouton déconnexion.
+La sidebar SHALL afficher : logo Cantine SEBN + sous-titre (version + nb sites), sections de navigation labellisées ("Principal", "Administration"), items avec icône SVG et état actif visuel (`background: rgba(37,99,235,.28)`), et un pied de page avec avatar coloré, nom, rôle et bouton déconnexion.
 
 #### Scenario: Section Administration visible pour AdminSEBN
 - **WHEN** l'utilisateur connecté est AdminSEBN

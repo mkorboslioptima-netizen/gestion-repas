@@ -7,7 +7,7 @@
 
 ## 2. Layout — Sidebar redessinée
 
-- [x] 2.1 Réécrire la sidebar dans `App.tsx` : marque (logo M + "MealOps" + sous-titre "v1.0 • N sites"), nav en sections labellisées, avatar pied de page
+- [x] 2.1 Réécrire la sidebar dans `App.tsx` : marque (logo M + "Cantine SEBN" + sous-titre "v1.0 • N sites"), nav en sections labellisées, avatar pied de page
 - [x] 2.2 Supprimer `Menu` d'Ant Design de la sidebar — remplacer par des `div.sb-item` stylés via `globals.css`
 - [x] 2.3 Ajouter les classes CSS `.sb-brand`, `.sb-nav`, `.sb-section`, `.sb-section-label`, `.sb-item`, `.sb-footer`, `.sb-avatar`, `.sb-user` dans `globals.css`
 - [x] 2.4 Bouton déconnexion dans le pied de sidebar — appelle `logout()` de `AuthContext`

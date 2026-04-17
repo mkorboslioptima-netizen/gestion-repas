@@ -1,24 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-
-// TODO: remplacer par un vrai appel POST /api/auth/login avant mise en production
-const DEV_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
-  '.eyJzdWIiOiJ0ZXN0LWFkbWluIiwibmFtZSI6IlRlc3QgQWRtaW4iLCJodHRwOi8vc2NoZW1hcy5taWNy' +
-  'b3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pblNFQk4iLCJpc3Mi' +
-  'OiJDYW50aW5lU0VCTiIsImF1ZCI6IkNhbnRpbmVTRUJOIiwiaWF0IjoxNzc2NDE2OTM3LCJleHAiOjE3' +
-  'ODUwMDAwMDB9.placeholder';
+import { login as apiLogin } from '../api/auth';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@sebn.tn');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const doLogin = (role: string) => {
-    // En dev : connexion rapide sans appel API
-    login(DEV_TOKEN, [role]);
-    navigate('/', { replace: true });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await apiLogin(email, password);
+      login(result.token);
+      navigate('/', { replace: true });
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        setError('Email ou mot de passe incorrect.');
+      } else {
+        setError('Une erreur est survenue. Veuillez réessayer.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,7 +42,7 @@ export default function LoginPage() {
             color: '#fff', fontWeight: 700, fontSize: 16,
           }}>M</div>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 600 }}>MealOps</div>
+            <div style={{ fontSize: 20, fontWeight: 600 }}>Cantine SEBN</div>
             <div style={{ fontSize: 11, color: 'var(--text2)' }}>Gestion repas multi-sites</div>
           </div>
         </div>
@@ -41,73 +51,62 @@ export default function LoginPage() {
           Connectez-vous pour accéder à votre espace.
         </p>
 
-        {/* Champs */}
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text2)', marginBottom: 5 }}>
-            Adresse email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            style={{
-              width: '100%', padding: '10px 12px', border: '1px solid var(--border)',
-              borderRadius: 8, fontSize: 13, color: 'var(--text)', background: 'var(--bg)', outline: 'none',
-            }}
-          />
-        </div>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text2)', marginBottom: 5 }}>
-            Mot de passe
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            style={{
-              width: '100%', padding: '10px 12px', border: '1px solid var(--border)',
-              borderRadius: 8, fontSize: 13, color: 'var(--text)', background: 'var(--bg)', outline: 'none',
-            }}
-          />
-        </div>
-
-        <button
-          onClick={() => doLogin('AdminSEBN')}
-          style={{
-            width: '100%', padding: 11, background: '#2563eb', color: '#fff',
-            border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          Se connecter
-        </button>
-
-        {/* Connexion rapide (dev uniquement) */}
-        {import.meta.env.DEV && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 8 }}>Connexion rapide (dev) :</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[
-                { label: 'AdminSEBN', role: 'AdminSEBN' },
-                { label: 'Responsable', role: 'ResponsableCantine' },
-              ].map(({ label, role }) => (
-                <button
-                  key={role}
-                  onClick={() => doLogin(role)}
-                  style={{
-                    padding: '4px 10px', border: '1px solid var(--border)', borderRadius: 20,
-                    fontSize: 11, color: 'var(--text2)', cursor: 'pointer', background: 'none',
-                    transition: 'all .15s',
-                  }}
-                  onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--primary-light)'; (e.target as HTMLElement).style.borderColor = '#2563eb'; (e.target as HTMLElement).style.color = '#2563eb'; }}
-                  onMouseLeave={e => { (e.target as HTMLElement).style.background = 'none'; (e.target as HTMLElement).style.borderColor = 'var(--border)'; (e.target as HTMLElement).style.color = 'var(--text2)'; }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text2)', marginBottom: 5 }}>
+              Adresse email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              style={{
+                width: '100%', padding: '10px 12px', border: '1px solid var(--border)',
+                borderRadius: 8, fontSize: 13, color: 'var(--text)', background: 'var(--bg)', outline: 'none',
+              }}
+            />
           </div>
-        )}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text2)', marginBottom: 5 }}>
+              Mot de passe
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder="••••••••"
+              style={{
+                width: '100%', padding: '10px 12px', border: '1px solid var(--border)',
+                borderRadius: 8, fontSize: 13, color: 'var(--text)', background: 'var(--bg)', outline: 'none',
+              }}
+            />
+          </div>
+
+          {error && (
+            <div style={{
+              marginBottom: 14, padding: '8px 12px', background: '#fef2f2',
+              border: '1px solid #fecaca', borderRadius: 8, fontSize: 13, color: '#dc2626',
+            }}>
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%', padding: 11, background: loading ? '#93c5fd' : '#2563eb', color: '#fff',
+              border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {loading ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </form>
       </div>
     </div>
   );
