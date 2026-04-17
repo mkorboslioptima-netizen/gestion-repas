@@ -9,7 +9,7 @@ namespace Cantine.Infrastructure.Tcp;
 
 public class MorphoFrameParser : IMorphoFrameParser
 {
-    private static readonly Regex FrameRegex = new(@"%[^%\r\n]*[?IO]", RegexOptions.Compiled);
+    private static readonly Regex FrameRegex = new(@"%?[^\r\n]*[?IO]", RegexOptions.Compiled);
     private static readonly Regex DateRegex = new(@"\d{2}/\d{2}/\d{2}", RegexOptions.Compiled);
     private static readonly Regex TimeRegex = new(@"\d{2}:\d{2}:\d{2}", RegexOptions.Compiled);
 

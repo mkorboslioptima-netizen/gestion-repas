@@ -196,6 +196,46 @@ namespace Cantine.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Cantine.Core.Entities.SyncLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Desactives")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Ignores")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Importes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MisAJour")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SiteId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SiteId");
+
+                    b.ToTable("SyncLogs");
+                });
+
             modelBuilder.Entity("Cantine.Core.Entities.Employee", b =>
                 {
                     b.HasOne("Cantine.Core.Entities.Site", "Site")
@@ -238,6 +278,17 @@ namespace Cantine.Infrastructure.Data.Migrations
                 });
 
             modelBuilder.Entity("Cantine.Core.Entities.MorphoConfig", b =>
+                {
+                    b.HasOne("Cantine.Core.Entities.Site", "Site")
+                        .WithMany()
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Site");
+                });
+
+            modelBuilder.Entity("Cantine.Core.Entities.SyncLog", b =>
                 {
                     b.HasOne("Cantine.Core.Entities.Site", "Site")
                         .WithMany()

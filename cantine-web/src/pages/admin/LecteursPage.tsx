@@ -129,22 +129,45 @@ export default function LecteursPage() {
 
   const isMutating = createMutation.isPending || updateMutation.isPending;
 
+  const total = lecteurs.length;
+  const enligne = lecteurs.filter(l => l.actif).length;
+  const horsligne = total - enligne;
+
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0 }}>Gestion des lecteurs</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
-          Ajouter un lecteur
-        </Button>
+    <div style={{ padding: 18 }}>
+      {/* Compteurs résumé */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+        <div className="summary-stat">
+          <div className="sv" style={{ color: 'var(--primary)' }}>{total}</div>
+          <div className="sl">Total</div>
+        </div>
+        <div className="summary-stat">
+          <div className="sv" style={{ color: 'var(--success)' }}>{enligne}</div>
+          <div className="sl">En ligne</div>
+        </div>
+        <div className="summary-stat">
+          <div className="sv" style={{ color: 'var(--danger)' }}>{horsligne}</div>
+          <div className="sl">Hors ligne</div>
+        </div>
       </div>
 
-      <Table
-        dataSource={lecteurs}
-        columns={columns}
-        rowKey="id"
-        loading={isLoading}
-        pagination={{ pageSize: 20 }}
-      />
+      {/* Tableau */}
+      <div className="admin-card">
+        <div className="admin-hdr">
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Lecteurs</span>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openAdd} size="small">
+            Ajouter
+          </Button>
+        </div>
+        <Table
+          dataSource={lecteurs}
+          columns={columns}
+          rowKey="id"
+          loading={isLoading}
+          pagination={{ pageSize: 20 }}
+          size="small"
+        />
+      </div>
 
       <LecteurFormModal
         open={modalOpen}

@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MealOps — Gestion Repas Multi-Sites</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --warn: #d97706;
+            --warn-light: #fffbeb;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --purple: #7c3aed;
+            --purple-light: #fdf4ff;
+            --sidebar: #1e293b;
+            --sidebar-text: #cbd5e1;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text2: #64748b;
+            --text3: #94a3b8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px
+        }
+
+        /* LOGIN */
+        #login-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #eff6ff, #f0fdf4)
+        }
+
+        .login-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            width: 380px
+        }
+
+        .login-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 16px
+        }
+
+        .login-title {
+            font-size: 20px;
+            font-weight: 600
+        }
+
+        .login-sub {
+            font-size: 13px;
+            color: var(--text2);
+            margin-bottom: 24px
+        }
+
+        .form-group {
+            margin-bottom: 14px
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text2);
+            margin-bottom: 5px
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            transition: border-color .15s
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .1)
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 11px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s
+        }
+
+        .btn-login:hover {
+            background: #1d4ed8
+        }
+
+        .demo-roles {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border)
+        }
+
+        .demo-label {
+            font-size: 11px;
+            color: var(--text2);
+            margin-bottom: 8px
+        }
+
+        .role-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .role-badge {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 11px;
+            color: var(--text2);
+            cursor: pointer;
+            transition: all .15s
+        }
+
+        .role-badge:hover,
+        .role-badge.active {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary)
+        }
+
+        /* APP SHELL */
+        #app {
+            display: none;
+            height: 100vh;
+            flex-direction: row;
+            overflow: hidden
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: var(--sidebar);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            height: 100vh;
+            overflow-y: auto
+        }
+
+        .sb-brand {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08)
+        }
+
+        .sb-brand-icon {
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0
+        }
+
+        .sb-brand-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #f1f5f9
+        }
+
+        .sb-brand-sub {
+            font-size: 10px;
+            color: var(--text3)
+        }
+
+        .sb-nav {
+            flex: 1;
+            padding: 10px 8px;
+            overflow-y: auto
+        }
+
+        .sb-section {
+            margin-bottom: 18px
+        }
+
+        .sb-section-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text3);
+            letter-spacing: .08em;
+            padding: 0 8px;
+            margin-bottom: 4px
+        }
+
+        .sb-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--sidebar-text);
+            font-size: 13px;
+            transition: background .12s;
+            margin-bottom: 1px;
+            position: relative
+        }
+
+        .sb-item:hover {
+            background: rgba(255, 255, 255, .07)
+        }
+
+        .sb-item.active {
+            background: rgba(37, 99, 235, .28);
+            color: #93c5fd
+        }
+
+        .sb-item svg {
+            width: 15px;
+            height: 15px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            flex-shrink: 0
+        }
+
+        .sb-badge {
+            margin-left: auto;
+            background: var(--primary);
+            color: #fff;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px
+        }
+
+        .sb-footer {
+            padding: 12px;
+            border-top: 1px solid rgba(255, 255, 255, .08)
+        }
+
+        .sb-user {
+            display: flex;
+            align-items: center;
+            gap: 9px
+        }
+
+        .sb-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0
+        }
+
+        .sb-uname {
+            font-size: 12px;
+            font-weight: 500;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .sb-urole {
+            font-size: 10px;
+            color: var(--text3)
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: var(--text3);
+            cursor: pointer;
+            padding: 4px;
+            margin-left: auto
+        }
+
+        .logout-btn:hover {
+            color: #f87171
+        }
+
+        .logout-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2
+        }
+
+        /* MAIN */
+        .main-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-y: auto;
+            min-width: 0
+        }
+
+        .header {
+            height: 52px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 12px;
+            flex-shrink: 0
+        }
+
+        .header-title {
+            font-size: 15px;
+            font-weight: 600;
+            flex: 1
+        }
+
+        .header-site {
+            font-size: 11px;
+            padding: 4px 10px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 20px;
+            font-weight: 500
+        }
+
+        .header-date {
+            font-size: 11px;
+            color: var(--text2)
+        }
+
+        .content {
+            flex: 1;
+            padding: 18px;
+            background: var(--bg)
+        }
+
+        /* PAGES */
+        .page {
+            display: none
+        }
+
+        .page.active {
+            display: block
+        }
+
+        /* FILTERS */
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 18px
+        }
+
+        .filter-label {
+            font-size: 12px;
+            color: var(--text2)
+        }
+
+        .filter-input {
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            background: var(--bg);
+            color: var(--text);
+            outline: none
+        }
+
+        .filter-input:focus {
+            border-color: var(--primary)
+        }
+
+        .filter-sep {
+            width: 1px;
+            background: var(--border);
+            height: 22px
+        }
+
+        .btn-apply {
+            padding: 6px 14px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500
+        }
+
+        .btn-apply:hover {
+            background: #1d4ed8
+        }
+
+        /* KPI GRID */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 18px
+        }
+
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px
+        }
+
+        .kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px
+        }
+
+        .kpi-lbl {
+            font-size: 11px;
+            color: var(--text2);
+            font-weight: 500
+        }
+
+        .kpi-ico {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .kpi-ico svg {
+            width: 15px;
+            height: 15px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2
+        }
+
+        .kpi-val {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1
+        }
+
+        .kpi-meta {
+            font-size: 11px;
+            margin-top: 5px
+        }
+
+        .up {
+            color: var(--success)
+        }
+
+        .down {
+            color: var(--danger)
+        }
+
+        .kpi-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden
+        }
+
+        .kpi-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width .6s ease
+        }
+
+        /* CHARTS */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1.7fr;
+            gap: 12px;
+            margin-bottom: 18px
+        }
+
+        .chart-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px
+        }
+
+        .chart-sub {
+            font-size: 11px;
+            color: var(--text2);
+            font-weight: 400;
+            margin-left: 6px
+        }
+
+        /* PIE */
+        .pie-wrap {
+            display: flex;
+            align-items: center;
+            gap: 18px
+        }
+
+        .pie-legend .item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px
+        }
+
+        .pie-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%
+        }
+
+        .pie-lbl {
+            font-size: 12px;
+            color: var(--text2)
+        }
+
+        .pie-val {
+            margin-left: auto;
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        /* BARS */
+        .bar-chart .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 9px
+        }
+
+        .bar-lbl {
+            font-size: 12px;
+            color: var(--text2);
+            width: 110px;
+            flex-shrink: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 22px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding-left: 7px;
+            transition: width .6s
+        }
+
+        .bar-fill span {
+            font-size: 10px;
+            font-weight: 500;
+            color: #fff
+        }
+
+        .bar-num {
+            font-size: 12px;
+            font-weight: 600;
+            width: 34px;
+            text-align: right
+        }
+
+        /* FEED TABLE */
+        .feed-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden
+        }
+
+        .feed-hdr {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .feed-title {
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: var(--success)
+        }
+
+        .pulse {
+            width: 7px;
+            height: 7px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1)
+            }
+
+            50% {
+                opacity: .5;
+                transform: scale(1.4)
+            }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th {
+            padding: 9px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text2);
+            text-align: left;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            letter-spacing: .04em;
+            white-space: nowrap
+        }
+
+        td {
+            padding: 10px 14px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        tr:last-child td {
+            border-bottom: none
+        }
+
+        tr:hover td {
+            background: #f8fafc
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap
+        }
+
+        .badge-dej {
+            background: #eff6ff;
+            color: #2563eb
+        }
+
+        .badge-din {
+            background: #fdf4ff;
+            color: #7c3aed
+        }
+
+        .badge-ptdej {
+            background: #fff7ed;
+            color: #c2410c
+        }
+
+        .sdot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px
+        }
+
+        .online {
+            background: var(--success)
+        }
+
+        .offline {
+            background: var(--danger)
+        }
+
+        /* ADMIN TABLES */
+        .admin-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden
+        }
+
+        .admin-hdr {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: var(--card)
+        }
+
+        .btn-add {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 14px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer
+        }
+
+        .btn-add:hover {
+            background: #1d4ed8
+        }
+
+        .action-btn {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 11px;
+            cursor: pointer;
+            background: none;
+            color: var(--text2);
+            margin-right: 3px;
+            transition: all .12s
+        }
+
+        .action-btn:hover {
+            background: var(--border)
+        }
+
+        .action-btn.danger {
+            border-color: var(--danger);
+            color: var(--danger)
+        }
+
+        .action-btn.danger:hover {
+            background: var(--danger-light)
+        }
+
+        .role-pill {
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500
+        }
+
+        .rp-sa {
+            background: #fdf4ff;
+            color: #7c3aed
+        }
+
+        .rp-ge {
+            background: #eff6ff;
+            color: #2563eb
+        }
+
+        .rp-pr {
+            background: #f0fdf4;
+            color: #16a34a
+        }
+
+        /* SITES GRID */
+        .sites-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px
+        }
+
+        .site-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px
+        }
+
+        .site-top {
+            display: flex;
+            align-items: start;
+            justify-content: space-between;
+            margin-bottom: 10px
+        }
+
+        .site-name {
+            font-weight: 600;
+            font-size: 13px
+        }
+
+        .site-active {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: var(--success-light);
+            color: var(--success)
+        }
+
+        .site-addr {
+            font-size: 11px;
+            color: var(--text2);
+            margin-bottom: 8px
+        }
+
+        .site-info {
+            font-size: 12px;
+            margin-bottom: 3px
+        }
+
+        .site-prest {
+            font-size: 11px;
+            color: var(--text2);
+            margin-bottom: 14px
+        }
+
+        .site-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border)
+        }
+
+        /* STAT TILES (prestataire) */
+        .stat-tiles {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 18px
+        }
+
+        .stat-tile {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center
+        }
+
+        .stat-val {
+            font-size: 34px;
+            font-weight: 700;
+            line-height: 1
+        }
+
+        .stat-lbl {
+            font-size: 12px;
+            color: var(--text2);
+            margin-top: 6px
+        }
+
+        .update-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px
+        }
+
+        .update-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px
+        }
+
+        .update-desc {
+            font-size: 12px;
+            color: var(--text2);
+            margin-bottom: 14px
+        }
+
+        .update-row {
+            display: flex;
+            gap: 10px
+        }
+
+        .update-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none
+        }
+
+        .update-input:focus {
+            border-color: var(--primary)
+        }
+
+        .btn-update {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer
+        }
+
+        .btn-update:hover {
+            background: #1d4ed8
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 11px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s;
+            z-index: 9999
+        }
+
+        .toast.show {
+            opacity: 1
+        }
+
+        /* SECTION HEADER */
+        .section-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        /* STAT SUMMARY ROW */
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(3, auto);
+            gap: 12px;
+            width: fit-content;
+            margin-bottom: 16px
+        }
+
+        .summary-stat {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 20px;
+            text-align: center;
+            min-width: 100px
+        }
+
+        .summary-stat .sv {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1
+        }
+
+        .summary-stat .sl {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 4px
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ===== LOGIN ===== -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="logo-icon">M</div>
+                <div>
+                    <div class="login-title">MealOps</div>
+                    <div style="font-size:11px;color:var(--text2)">Gestion repas multi-sites</div>
+                </div>
+            </div>
+            <p class="login-sub">Connectez-vous pour accéder à votre espace.</p>
+            <div class="form-group">
+                <label class="form-label">Adresse email</label>
+                <input class="form-input" type="email" value="admin@mealops.tn">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input class="form-input" type="password" value="password">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Rôle (démo)</label>
+                <select class="form-select" id="role-select">
+                    <option value="superadmin">Super Admin</option>
+                    <option value="gestionnaire">Gestionnaire</option>
+                    <option value="prestataire">Prestataire (Restaurant)</option>
+                </select>
+            </div>
+            <button class="btn-login" onclick="doLogin()">Se connecter</button>
+            <div class="demo-roles">
+                <div class="demo-label">Connexion rapide :</div>
+                <div class="role-badges">
+                    <div class="role-badge active" onclick="qLogin('superadmin',this)">Super Admin</div>
+                    <div class="role-badge" onclick="qLogin('gestionnaire',this)">Gestionnaire</div>
+                    <div class="role-badge" onclick="qLogin('prestataire',this)">Prestataire</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== APP ===== -->
+    <div id="app">
+
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <div class="sb-brand">
+                <div class="sb-brand-icon">M</div>
+                <div>
+                    <div class="sb-brand-name">MealOps</div>
+                    <div class="sb-brand-sub">v2.4 • 3 sites</div>
+                </div>
+            </div>
+            <nav class="sb-nav" id="sb-nav"></nav>
+            <div class="sb-footer">
+                <div class="sb-user">
+                    <div class="sb-avatar" id="sb-avatar"></div>
+                    <div style="flex:1;min-width:0">
+                        <div class="sb-uname" id="sb-uname"></div>
+                        <div class="sb-urole" id="sb-urole"></div>
+                    </div>
+                    <button class="logout-btn" onclick="doLogout()">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="main-wrap">
+            <div class="header">
+                <div class="header-title" id="page-title">Tableau de bord</div>
+                <div class="header-site" id="header-site">Site SEBN 01</div>
+                <div class="header-date" id="header-date"></div>
+            </div>
+            <div class="content">
+
+                <!-- PAGE: DASHBOARD (admin + gestionnaire) -->
+                <div class="page active" id="page-dashboard">
+                    <!-- Filters -->
+                    <div class="filters">
+                        <span class="filter-label">Date</span>
+                        <input type="date" class="filter-input" value="2025-04-16">
+                        <div class="filter-sep"></div>
+                        <span class="filter-label">Type repas</span>
+                        <select class="filter-input">
+                            <option>Tous</option>
+                            <option>Plats chauds</option>
+                            <option>Sandwich</option>
+                        </select>
+                        <div class="filter-sep"></div>
+                        <span class="filter-label">Site</span>
+                        <select class="filter-input">
+                            <option>Tous les sites</option>
+                            <option>SEBN 01</option>
+                            <option>SEBN 02</option>
+                            <option>SEBN 03</option>
+                        </select>
+                        <button class="btn-apply" onclick="toast('Filtres appliqués')">Appliquer</button>
+                    </div>
+
+                    <!-- KPIs -->
+                    <div class="kpi-grid">
+                        <div class="kpi">
+                            <div class="kpi-top">
+                                <span class="kpi-lbl">Repas servis</span>
+                                <div class="kpi-ico" style="background:#eff6ff;color:#2563eb"><svg viewBox="0 0 24 24">
+                                        <path
+                                            d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3" />
+                                    </svg></div>
+                            </div>
+                            <div class="kpi-val">1 284</div>
+                            <div class="kpi-meta"><span class="up">+8.2%</span> vs hier</div>
+                            <div class="kpi-bar">
+                                <div class="kpi-bar-fill" style="width:76%;background:#2563eb"></div>
+                            </div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-top">
+                                <span class="kpi-lbl">Employés pointés</span>
+                                <div class="kpi-ico" style="background:#f0fdf4;color:#16a34a"><svg viewBox="0 0 24 24">
+                                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75" />
+                                    </svg></div>
+                            </div>
+                            <div class="kpi-val">847</div>
+                            <div class="kpi-meta"><span class="up">+3.1%</span> vs hier</div>
+                            <div class="kpi-bar">
+                                <div class="kpi-bar-fill" style="width:65%;background:#16a34a"></div>
+                            </div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-top">
+                                <span class="kpi-lbl">Taux de remplissage</span>
+                                <div class="kpi-ico" style="background:#fffbeb;color:#d97706"><svg viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 6v6l4 2" />
+                                    </svg></div>
+                            </div>
+                            <div class="kpi-val">78%</div>
+                            <div class="kpi-meta"><span class="down">-2.4%</span> vs hier</div>
+                            <div class="kpi-bar">
+                                <div class="kpi-bar-fill" style="width:78%;background:#d97706"></div>
+                            </div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-top">
+                                <span class="kpi-lbl">Plats préparés</span>
+                                <div class="kpi-ico" style="background:#fdf4ff;color:#7c3aed"><svg viewBox="0 0 24 24">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                    </svg></div>
+                            </div>
+                            <div class="kpi-val">1 340</div>
+                            <div class="kpi-meta"><span class="up">+12%</span> vs hier</div>
+                            <div class="kpi-bar">
+                                <div class="kpi-bar-fill" style="width:84%;background:#7c3aed"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="charts-row">
+                        <div class="chart-card">
+                            <div class="chart-title">Répartition plats<span class="chart-sub">Aujourd'hui</span></div>
+                            <div class="pie-wrap">
+                                <canvas id="pie-canvas" width="110" height="110" style="flex-shrink:0"></canvas>
+                                <div class="pie-legend">
+                                    <div class="item">
+                                        <div class="pie-dot" style="background:#2563eb"></div><span
+                                            class="pie-lbl">Plats chauds</span><span class="pie-val">724</span>
+                                    </div>
+                                    <div class="item">
+                                        <div class="pie-dot" style="background:#7c3aed"></div><span
+                                            class="pie-lbl">Sandwich</span><span class="pie-val">560</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">Repas par site<span class="chart-sub">Histogramme</span></div>
+                            <div class="bar-chart" id="bar-chart">
+                                <div class="bar-row"><span class="bar-lbl">SEBN 01</span>
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width:71%;background:#2563eb"><span>512</span>
+                                        </div>
+                                    </div><span class="bar-num">512</span>
+                                </div>
+                                <div class="bar-row"><span class="bar-lbl">SEBN 02</span>
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width:60%;background:#7c3aed"><span>431</span>
+                                        </div>
+                                    </div><span class="bar-num">431</span>
+                                </div>
+                                <div class="bar-row"><span class="bar-lbl">SEBN 03</span>
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width:47%;background:#16a34a"><span>341</span>
+                                        </div>
+                                    </div><span class="bar-num">341</span>
+                                </div>
+                                <div class="bar-row"><span class="bar-lbl">Plats chauds</span>
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width:100%;background:#0891b2"><span>724</span>
+                                        </div>
+                                    </div><span class="bar-num">724</span>
+                                </div>
+                                <div class="bar-row"><span class="bar-lbl">Sandwich</span>
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width:77%;background:#d97706"><span>560</span>
+                                        </div>
+                                    </div><span class="bar-num">560</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feed live — SANS colonne Taux -->
+                    <div class="feed-card">
+                        <div class="feed-hdr">
+                            <span class="feed-title">Feed Live</span>
+                            <div class="live-badge">
+                                <div class="pulse"></div>En direct
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Matricule</th>
+                                    <th>Type de repas</th>
+                                    <th>Pointage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feed-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PAGE: PRESTATAIRE -->
+                <div class="page" id="page-prestataire">
+                    <div class="stat-tiles">
+                        <div class="stat-tile">
+                            <div class="stat-val" style="color:#2563eb">1 400</div>
+                            <div class="stat-lbl">Repas estimés</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-val" style="color:#16a34a" id="prep-display">1 284</div>
+                            <div class="stat-lbl">Repas préparés</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-val" style="color:#d97706">92%</div>
+                            <div class="stat-lbl">Taux de couverture</div>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="margin-bottom:16px">
+                        <div class="chart-title">Répartition par type de repas</div>
+                        <div class="bar-chart">
+                            <div class="bar-row"><span class="bar-lbl">Plats chauds</span>
+                                <div class="bar-track">
+                                    <div class="bar-fill" style="width:100%;background:#2563eb"><span>724</span></div>
+                                </div><span class="bar-num">724</span>
+                            </div>
+                            <div class="bar-row"><span class="bar-lbl">Sandwich</span>
+                                <div class="bar-track">
+                                    <div class="bar-fill" style="width:77%;background:#7c3aed"><span>560</span></div>
+                                </div><span class="bar-num">560</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="update-card">
+                        <div class="update-title">Mettre à jour les repas préparés</div>
+                        <div class="update-desc">Saisissez le nombre total de repas préparés pour aujourd'hui.</div>
+                        <div class="update-row">
+                            <input class="update-input" type="number" id="prep-input" value="1284"
+                                placeholder="Ex: 1 350">
+                            <button class="btn-update" onclick="updatePrep()">Mettre à jour</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAGE: UTILISATEURS -->
+                <div class="page" id="page-users">
+                    <div class="admin-card">
+                        <div class="admin-hdr">
+                            <span style="font-size:14px;font-weight:600">Comptes utilisateurs</span>
+                            <button class="btn-add" onclick="toast('Formulaire ajout utilisateur')">+ Ajouter</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Rôle</th>
+                                    <th>Site</th>
+                                    <th>Dernière connexion</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="font-weight:500">Karim Ben Ali</td>
+                                    <td style="color:var(--text2)">k.benali@ent-a.tn</td>
+                                    <td><span class="role-pill rp-sa">Super Admin</span></td>
+                                    <td>Tous</td>
+                                    <td style="color:var(--text2)">Aujourd'hui 09:14</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Modifier Karim')">Modifier</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:500">Ghofrane Bouzid</td>
+                                    <td style="color:var(--text2)">g.bouzid@ent-a.tn</td>
+                                    <td><span class="role-pill rp-ge">Gestionnaire</span></td>
+                                    <td>SEBN 01</td>
+                                    <td style="color:var(--text2)">Hier 17:32</td>
+                                    <td><button class="action-btn" onclick="toast('Modifier')">Modifier</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:500">Maher Trabelsi</td>
+                                    <td style="color:var(--text2)">m.trabelsi@ent-b.tn</td>
+                                    <td><span class="role-pill rp-ge">Gestionnaire</span></td>
+                                    <td>SEBN 02</td>
+                                    <td style="color:var(--text2)">16/04 11:20</td>
+                                    <td><button class="action-btn" onclick="toast('Modifier')">Modifier</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:500">Restaurant Saveurs</td>
+                                    <td style="color:var(--text2)">contact@saveurs.tn</td>
+                                    <td><span class="role-pill rp-pr">Prestataire</span></td>
+                                    <td>SEBN 01</td>
+                                    <td style="color:var(--text2)">Aujourd'hui 07:00</td>
+                                    <td><button class="action-btn" onclick="toast('Modifier')">Modifier</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:500">La Table de Sfax</td>
+                                    <td style="color:var(--text2)">info@tablefax.tn</td>
+                                    <td><span class="role-pill rp-pr">Prestataire</span></td>
+                                    <td>SEBN 02</td>
+                                    <td style="color:var(--text2)">15/04 19:45</td>
+                                    <td><button class="action-btn" onclick="toast('Modifier')">Modifier</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PAGE: SITES -->
+                <div class="page" id="page-sites">
+                    <div class="section-hdr">
+                        <span class="section-title">Sites actifs</span>
+                        <button class="btn-add" onclick="toast('Ajout site')">+ Ajouter</button>
+                    </div>
+                    <div class="sites-grid">
+                        <div class="site-card">
+                            <div class="site-top"><span class="site-name">SEBN 01</span><span class="site-active"><span
+                                        class="sdot online"></span>Actif</span></div>
+                            <div class="site-addr">Route de la Marsa, Tunis 1070</div>
+                            <div class="site-info"><strong>320</strong> employés</div>
+                            <div class="site-prest">Prestataire : Restaurant Saveurs</div>
+                            <div class="site-actions"><button class="action-btn"
+                                    onclick="toast('Modifier SEBN 01')">Modifier</button><button
+                                    class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button></div>
+                        </div>
+                        <div class="site-card">
+                            <div class="site-top"><span class="site-name">SEBN 02</span><span class="site-active"><span
+                                        class="sdot online"></span>Actif</span></div>
+                            <div class="site-addr">Rte Nationale 1, Sfax 3000</div>
+                            <div class="site-info"><strong>280</strong> employés</div>
+                            <div class="site-prest">Prestataire : La Table de Sfax</div>
+                            <div class="site-actions"><button class="action-btn"
+                                    onclick="toast('Modifier SEBN 02')">Modifier</button><button
+                                    class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button></div>
+                        </div>
+                        <div class="site-card">
+                            <div class="site-top"><span class="site-name">SEBN 03</span><span class="site-active"><span
+                                        class="sdot online"></span>Actif</span></div>
+                            <div class="site-addr">Blv Léopold Senghor, Sousse 4000</div>
+                            <div class="site-info"><strong>247</strong> employés</div>
+                            <div class="site-prest">Prestataire : Chez Hamdi</div>
+                            <div class="site-actions"><button class="action-btn"
+                                    onclick="toast('Modifier SEBN 03')">Modifier</button><button
+                                    class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAGE: POINTEUSES -->
+                <div class="page" id="page-pointeuses">
+                    <div style="display:flex;gap:12px;margin-bottom:16px">
+                        <div class="summary-stat">
+                            <div class="sv" style="color:var(--primary)">5</div>
+                            <div class="sl">Total</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="sv" style="color:var(--success)">4</div>
+                            <div class="sl">En ligne</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="sv" style="color:var(--danger)">1</div>
+                            <div class="sl">Hors ligne</div>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="admin-hdr">
+                            <span style="font-size:14px;font-weight:600">Pointeuses</span>
+                            <button class="btn-add" onclick="toast('Ajout pointeuse')">+ Ajouter</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Emplacement</th>
+                                    <th>Site</th>
+                                    <th>Statut</th>
+                                    <th>Dernier ping</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">PT-001</td>
+                                    <td>Entrée Hall A</td>
+                                    <td style="color:var(--text2)">SEBN 01</td>
+                                    <td><span class="sdot online"></span><span
+                                            style="color:var(--success);font-size:12px">En ligne</span></td>
+                                    <td style="color:var(--text2)">Il y a 2 min</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Redémarrer PT-001')">Redémarrer</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">PT-002</td>
+                                    <td>Réfectoire</td>
+                                    <td style="color:var(--text2)">SEBN 01</td>
+                                    <td><span class="sdot online"></span><span
+                                            style="color:var(--success);font-size:12px">En ligne</span></td>
+                                    <td style="color:var(--text2)">Il y a 5 min</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Redémarrer PT-002')">Redémarrer</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">PT-003</td>
+                                    <td>Couloir B</td>
+                                    <td style="color:var(--text2)">SEBN 02</td>
+                                    <td><span class="sdot offline"></span><span
+                                            style="color:var(--danger);font-size:12px">Hors ligne</span></td>
+                                    <td style="color:var(--text2)">Il y a 3h</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Redémarrer PT-003')">Redémarrer</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">PT-004</td>
+                                    <td>Entrée principale</td>
+                                    <td style="color:var(--text2)">SEBN 02</td>
+                                    <td><span class="sdot online"></span><span
+                                            style="color:var(--success);font-size:12px">En ligne</span></td>
+                                    <td style="color:var(--text2)">Il y a 1 min</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Redémarrer PT-004')">Redémarrer</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">PT-005</td>
+                                    <td>Cafétéria</td>
+                                    <td style="color:var(--text2)">SEBN 03</td>
+                                    <td><span class="sdot online"></span><span
+                                            style="color:var(--success);font-size:12px">En ligne</span></td>
+                                    <td style="color:var(--text2)">Il y a 8 min</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Redémarrer PT-005')">Redémarrer</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PAGE: IMPRIMANTES -->
+                <div class="page" id="page-imprimantes">
+                    <div style="display:flex;gap:12px;margin-bottom:16px">
+                        <div class="summary-stat">
+                            <div class="sv" style="color:var(--primary)">4</div>
+                            <div class="sl">Total</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="sv" style="color:var(--success)">3</div>
+                            <div class="sl">En ligne</div>
+                        </div>
+                        <div class="summary-stat">
+                            <div class="sv" style="color:var(--danger)">1</div>
+                            <div class="sl">Hors ligne</div>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <div class="admin-hdr">
+                            <span style="font-size:14px;font-weight:600">Imprimantes</span>
+                            <button class="btn-add" onclick="toast('Ajout imprimante')">+ Ajouter</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Modèle</th>
+                                    <th>Site associé</th>
+                                    <th>Statut</th>
+                                    <th>Jobs actifs</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">IMP-001</td>
+                                    <td>HP LaserJet Pro</td>
+                                    <td style="color:var(--text2)">SEBN 01</td>
+                                    <td><span class="sdot online"></span><span
+                                            style="color:var(--success);font-size:12px">En ligne</span></td>
+                                    <td>12</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Tester IMP-001')">Tester</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">IMP-002</td>
+                                    <td>Canon iR 2206</td>
+                                    <td style="color:var(--text2)">SEBN 01</td>
+                                    <td><span class="sdot offline"></span><span
+                                            style="color:var(--danger);font-size:12px">Hors ligne</span></td>
+                                    <td>0</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Tester IMP-002')">Tester</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">IMP-003</td>
+                                    <td>Brother HL-L3230</td>
+                                    <td style="color:var(--text2)">SEBN 02</td>
+                                    <td><span class="sdot online"></span><span
+                                            style="color:var(--success);font-size:12px">En ligne</span></td>
+                                    <td>7</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Tester IMP-003')">Tester</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family:monospace;font-weight:500">IMP-004</td>
+                                    <td>Epson EcoTank</td>
+                                    <td style="color:var(--text2)">SEBN 03</td>
+                                    <td><span class="sdot online"></span><span
+                                            style="color:var(--success);font-size:12px">En ligne</span></td>
+                                    <td>3</td>
+                                    <td><button class="action-btn"
+                                            onclick="toast('Tester IMP-004')">Tester</button><button
+                                            class="action-btn danger" onclick="toast('Supprimer ?')">Supprimer</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- /content -->
+        </div><!-- /main-wrap -->
+    </div><!-- /app -->
+
+    <div class="toast" id="toast-el"></div>
+
+    <script>
+        const ROLES_META = {
+            superadmin: { name: 'Karim Ben Ali', role: 'Super Admin', initials: 'SA', color: '#7c3aed' },
+            gestionnaire: { name: 'Ghofrane Bouzid', role: 'Gestionnaire', initials: 'GB', color: '#2563eb' },
+            prestataire: { name: 'Restaurant Saveurs', role: 'Prestataire', initials: 'PR', color: '#16a34a' },
+        };
+
+        const NAVS = {
+            superadmin: [
+                {
+                    section: 'Principal', items: [
+                        { id: 'dashboard', label: 'Tableau de bord', icon: '<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>' },
+                    ]
+                },
+                {
+                    section: 'Administration', items: [
+                        { id: 'users', label: 'Utilisateurs', icon: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/>', badge: 12 },
+                        { id: 'sites', label: 'Sites', icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>' },
+                        { id: 'pointeuses', label: 'Pointeuses', icon: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/>' },
+                        { id: 'imprimantes', label: 'Imprimantes', icon: '<path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>' },
+                    ]
+                }
+            ],
+            gestionnaire: [
+                {
+                    section: 'Principal', items: [
+                        { id: 'dashboard', label: 'Tableau de bord', icon: '<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>' },
+                    ]
+                }
+            ],
+            prestataire: [
+                {
+                    section: 'Principal', items: [
+                        { id: 'prestataire', label: 'Mon tableau de bord', icon: '<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>' },
+                    ]
+                }
+            ],
+        };
+
+        const PAGE_TITLES = { dashboard: 'Tableau de bord', prestataire: 'Mon tableau de bord', users: 'Utilisateurs', sites: 'Sites', pointeuses: 'Pointeuses', imprimantes: 'Imprimantes' };
+
+        let currentRole = 'superadmin';
+        let currentPage = 'dashboard';
+        let liveData = genFeed();
+
+        function genFeed() {
+            const names = ['Sarra Miled', 'Ahmed Trabelsi', 'Nour Ben Salah', 'Majdi Khlifa', 'Wafa Gharbi', 'Tarek Sfar', 'Ines Jebali', 'Hedi Abid', 'Rami Zouari', 'Lobna Toumi'];
+            const types = ['Plats chauds', 'Plats chauds', 'Sandwich', 'Plats chauds', 'Sandwich'];
+            return names.map((n, i) => ({ nom: n, mat: 'E' + (1000 + i * 7 + 3), type: types[i % types.length], heure: `${(11 + Math.floor(i / 3)).toString().padStart(2, '0')}:${(i * 7 % 60).toString().padStart(2, '0')}` }));
+        }
+
+        function qLogin(r, el) {
+            currentRole = r;
+            document.querySelectorAll('.role-badge').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('role-select').value = r;
+        }
+
+        function doLogin() {
+            currentRole = document.getElementById('role-select').value;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            const m = ROLES_META[currentRole];
+            document.getElementById('sb-avatar').textContent = m.initials;
+            document.getElementById('sb-avatar').style.background = m.color;
+            document.getElementById('sb-uname').textContent = m.name;
+            document.getElementById('sb-urole').textContent = m.role;
+            document.getElementById('header-date').textContent = new Date().toLocaleDateString('fr-TN', { weekday: 'short', day: '2-digit', month: 'short' });
+            buildNav();
+            const defaultPage = currentRole === 'prestataire' ? 'prestataire' : 'dashboard';
+            navigate(defaultPage);
+            drawPie();
+            setInterval(addLive, 5000);
+        }
+
+        function doLogout() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
+        }
+
+        function buildNav() {
+            const nav = document.getElementById('sb-nav');
+            nav.innerHTML = '';
+            (NAVS[currentRole] || []).forEach(s => {
+                const sec = document.createElement('div'); sec.className = 'sb-section';
+                sec.innerHTML = `<div class="sb-section-label">${s.section}</div>`;
+                s.items.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'sb-item'; el.dataset.page = item.id;
+                    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${item.icon}</svg>${item.label}${item.badge ? `<span class="sb-badge">${item.badge}</span>` : ''}`;
+                    el.onclick = () => navigate(item.id);
+                    sec.appendChild(el);
+                });
+                nav.appendChild(sec);
+            });
+        }
+
+        function navigate(page) {
+            currentPage = page;
+            document.querySelectorAll('.sb-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('page-' + page);
+            if (target) target.classList.add('active');
+            document.getElementById('page-title').textContent = PAGE_TITLES[page] || page;
+            if (page === 'dashboard' || page === 'prestataire') renderFeed();
+        }
+
+        function renderFeed() {
+            const tb = document.getElementById('feed-tbody'); if (!tb) return;
+            tb.innerHTML = liveData.slice(0, 8).map(r => `
+    <tr>
+      <td style="font-weight:500">${r.nom}</td>
+      <td style="color:var(--text2)">${r.mat}</td>
+      <td><span class="badge ${r.type === 'Plats chauds' ? 'badge-dej' : 'badge-din'}">${r.type}</span></td>
+      <td style="font-variant-numeric:tabular-nums">${r.heure}</td>
+    </tr>`).join('');
+        }
+
+        function addLive() {
+            const names = ['Farouk Ben Hamida', 'Sirine Ayed', 'Oussama Khedher', 'Rim Hammami'];
+            const types = ['Plats chauds', 'Sandwich'];
+            const now = new Date();
+            liveData.unshift({
+                nom: names[Math.floor(Math.random() * names.length)],
+                mat: 'E' + (1100 + Math.floor(Math.random() * 900)),
+                type: types[Math.floor(Math.random() * 2)],
+                heure: now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
+            });
+            if (liveData.length > 20) liveData.pop();
+            if (currentPage === 'dashboard' || currentPage === 'prestataire') renderFeed();
+        }
+
+        function drawPie() {
+            const c = document.getElementById('pie-canvas'); if (!c) return;
+            const ctx = c.getContext('2d');
+            const data = [724, 560], colors = ['#2563eb', '#7c3aed'], total = 1284;
+            let a = -Math.PI / 2;
+            ctx.clearRect(0, 0, 110, 110);
+            data.forEach((v, i) => { const s = v / total * Math.PI * 2; ctx.beginPath(); ctx.moveTo(55, 55); ctx.arc(55, 55, 46, a, a + s); ctx.closePath(); ctx.fillStyle = colors[i]; ctx.fill(); a += s; });
+            ctx.beginPath(); ctx.arc(55, 55, 26, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+        }
+
+        function updatePrep() {
+            const v = parseInt(document.getElementById('prep-input').value) || 0;
+            document.getElementById('prep-display').textContent = v.toLocaleString('fr');
+            toast('Mise à jour enregistrée — ' + v + ' repas préparés');
+        }
+
+        function toast(msg) {
+            const el = document.getElementById('toast-el');
+            el.textContent = msg; el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2500);
+        }
+    </script>
+</body>
+
+</html>

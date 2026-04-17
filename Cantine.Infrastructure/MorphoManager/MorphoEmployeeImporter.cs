@@ -19,7 +19,7 @@ public class MorphoEmployeeImporter : IMorphoEmployeeImporter
         _logger = logger;
     }
 
-    public async Task<ImportResultDto> ImportAsync(string siteId, bool desactiverAbsents = false)
+    public async Task<ImportResultDto> ImportAsync(string siteId, bool desactiverAbsents = false, string source = "Manual")
     {
         var config = await _context.MorphoConfigs
             .AsNoTracking()
@@ -112,6 +112,17 @@ public class MorphoEmployeeImporter : IMorphoEmployeeImporter
                 result.Desactives++;
             }
         }
+
+        _context.SyncLogs.Add(new Core.Entities.SyncLog
+        {
+            SiteId = siteId,
+            OccurredAt = DateTime.UtcNow,
+            Source = source,
+            Importes = result.Importes,
+            MisAJour = result.MisAJour,
+            Desactives = result.Desactives,
+            Ignores = result.Ignores
+        });
 
         await _context.SaveChangesAsync();
 

@@ -26,4 +26,10 @@ public class EmployeeRepository : IEmployeeRepository
 
         return await query.FirstOrDefaultAsync();
     }
+
+    public async Task<Employee?> GetByMatriculeAndSiteAsync(string matricule, string siteId)
+    {
+        return await _context.Employees.AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Matricule == matricule && e.SiteId == siteId);
+    }
 }

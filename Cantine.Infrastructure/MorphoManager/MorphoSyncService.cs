@@ -44,7 +44,7 @@ public class MorphoSyncService : IMorphoSyncService
             try
             {
                 _logger.LogInformation("[Sync Morpho] Démarrage synchronisation site {SiteId}...", siteId);
-                var result = await _importer.ImportAsync(siteId, desactiverAbsents: true);
+                var result = await _importer.ImportAsync(siteId, desactiverAbsents: true, source: "Auto");
                 sw.Stop();
 
                 _logger.LogInformation(

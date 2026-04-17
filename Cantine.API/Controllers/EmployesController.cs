@@ -1,6 +1,9 @@
+using Cantine.Core.DTOs;
 using Cantine.Core.Interfaces;
+using Cantine.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Cantine.API.Controllers;
 
@@ -11,11 +14,13 @@ public class EmployesController : ControllerBase
 {
     private readonly IMorphoEmployeeImporter _importer;
     private readonly IMorphoSyncService _syncService;
+    private readonly CantineDbContext _context;
 
-    public EmployesController(IMorphoEmployeeImporter importer, IMorphoSyncService syncService)
+    public EmployesController(IMorphoEmployeeImporter importer, IMorphoSyncService syncService, CantineDbContext context)
     {
         _importer = importer;
         _syncService = syncService;
+        _context = context;
     }
 
     // POST /api/employes/import-morpho/{siteId}
@@ -35,6 +40,100 @@ public class EmployesController : ControllerBase
         {
             return StatusCode(502, new { message = $"Erreur de connexion MorphoManager : {ex.Message}" });
         }
+    }
+
+    // GET /api/employes?siteId=
+    [HttpGet]
+    public async Task<IActionResult> GetEmployes([FromQuery] string siteId)
+    {
+        var employes = await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.SiteId == siteId)
+            .Select(e => new EmployeeDto
+            {
+                Matricule = e.Matricule,
+                Nom = e.Nom,
+                Prenom = e.Prenom,
+                Actif = e.Actif,
+                MaxMealsPerDay = e.MaxMealsPerDay
+            })
+            .OrderBy(e => e.Nom).ThenBy(e => e.Prenom)
+            .ToListAsync();
+
+        return Ok(employes);
+    }
+
+    // GET /api/employes/stats
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats()
+    {
+        var sites = await _context.Sites
+            .AsNoTracking()
+            .Where(s => s.Actif)
+            .ToListAsync();
+
+        var stats = new List<EmployeeSiteStatsDto>();
+
+        foreach (var site in sites)
+        {
+            var totalActifs = await _context.Employees
+                .AsNoTracking()
+                .CountAsync(e => e.SiteId == site.SiteId && e.Actif);
+
+            var dernierLog = await _context.SyncLogs
+                .AsNoTracking()
+                .Where(l => l.SiteId == site.SiteId)
+                .OrderByDescending(l => l.OccurredAt)
+                .Select(l => new SyncLogDto
+                {
+                    Id = l.Id,
+                    SiteId = l.SiteId,
+                    NomSite = site.Nom,
+                    OccurredAt = l.OccurredAt,
+                    Source = l.Source,
+                    Importes = l.Importes,
+                    MisAJour = l.MisAJour,
+                    Desactives = l.Desactives,
+                    Ignores = l.Ignores
+                })
+                .FirstOrDefaultAsync();
+
+            stats.Add(new EmployeeSiteStatsDto
+            {
+                SiteId = site.SiteId,
+                NomSite = site.Nom,
+                TotalActifs = totalActifs,
+                DerniereSynchro = dernierLog
+            });
+        }
+
+        return Ok(stats);
+    }
+
+    // GET /api/employes/sync-logs/{siteId}
+    [HttpGet("sync-logs/{siteId}")]
+    public async Task<IActionResult> GetSyncLogs(string siteId)
+    {
+        var logs = await _context.SyncLogs
+            .AsNoTracking()
+            .Where(l => l.SiteId == siteId)
+            .OrderByDescending(l => l.OccurredAt)
+            .Take(10)
+            .Join(_context.Sites, l => l.SiteId, s => s.SiteId, (l, s) => new SyncLogDto
+            {
+                Id = l.Id,
+                SiteId = l.SiteId,
+                NomSite = s.Nom,
+                OccurredAt = l.OccurredAt,
+                Source = l.Source,
+                Importes = l.Importes,
+                MisAJour = l.MisAJour,
+                Desactives = l.Desactives,
+                Ignores = l.Ignores
+            })
+            .ToListAsync();
+
+        return Ok(logs);
     }
 
     // POST /api/employes/sync-morpho
