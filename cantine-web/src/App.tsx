@@ -1,16 +1,18 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider, Layout, Menu, Select, Space, Typography } from 'antd';
-import { SettingOutlined, GlobalOutlined, TeamOutlined } from '@ant-design/icons';
+import { ConfigProvider, Layout, Menu, Select, Typography } from 'antd';
+import { SettingOutlined, GlobalOutlined, TeamOutlined, DashboardOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { SiteProvider, useSite } from './context/SiteContext';
 import PrivateRoute from './auth/PrivateRoute';
 import LecteursPage from './pages/admin/LecteursPage';
 import SitesPage from './pages/admin/SitesPage';
 import EmployesPage from './pages/admin/EmployesPage';
+import DashboardPage from './pages/DashboardPage';
 import { useQuery } from '@tanstack/react-query';
 import { getSites } from './api/sites';
 import 'antd/dist/reset.css';
+
 
 const { Sider, Content } = Layout;
 const { Title } = Typography;
@@ -49,9 +51,15 @@ function SiteSelector() {
 
 function AppLayout() {
   const { roles } = useAuth();
-  const isAdmin = roles.includes('AdminSEBN');
+  const isAdmin = true; // TODO: remettre `roles.includes('AdminSEBN')` avant mise en production
+  void roles;
 
   const menuItems = [
+    {
+      key: '/',
+      icon: <DashboardOutlined />,
+      label: <Link to="/">Dashboard</Link>,
+    },
     {
       key: '/admin/lecteurs',
       icon: <SettingOutlined />,
@@ -85,25 +93,11 @@ function AppLayout() {
       <Layout>
         <Content style={{ background: '#f5f5f5' }}>
           <Routes>
-            <Route path="/" element={<Navigate to="/admin/lecteurs" replace />} />
-            {/* TODO: remettre PrivateRoute avant mise en production */}
+            <Route path="/" element={<DashboardPage />} />
+            {/* TODO: remettre PrivateRoute sur toutes les routes avant mise en production */}
             <Route path="/admin/lecteurs" element={<LecteursPage />} />
-            <Route
-              path="/admin/employes"
-              element={
-                <PrivateRoute requiredRole="AdminSEBN">
-                  <EmployesPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/admin/sites"
-              element={
-                <PrivateRoute requiredRole="AdminSEBN">
-                  <SitesPage />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/admin/employes" element={<EmployesPage />} />
+            <Route path="/admin/sites" element={<SitesPage />} />
             <Route path="/unauthorized" element={<div style={{ padding: 24 }}>Accès refusé.</div>} />
             <Route path="/login" element={<div style={{ padding: 24 }}>Page de connexion (à implémenter).</div>} />
           </Routes>

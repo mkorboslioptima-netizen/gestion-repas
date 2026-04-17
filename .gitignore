@@ -18,6 +18,14 @@ build/
 .next/
 out/
 
+# .NET build artifacts
+bin/
+obj/
+*.user
+
+# Playwright MCP screenshots/snapshots
+.playwright-mcp/
+
 # Logs
 *.log
 logs/

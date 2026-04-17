@@ -9,6 +9,7 @@ using Cantine.API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,6 +61,23 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors();
+
+// TODO: retirer ce bloc avant mise en production
+if (app.Environment.IsDevelopment())
+{
+    // Injecte automatiquement un utilisateur AdminSEBN sans token en dev
+    app.Use(async (ctx, next) =>
+    {
+        var identity = new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Name, "dev-admin"),
+            new Claim(ClaimTypes.Role, "AdminSEBN"),
+        ], authenticationType: "DevBypass");
+        ctx.User = new ClaimsPrincipal(identity);
+        await next();
+    });
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

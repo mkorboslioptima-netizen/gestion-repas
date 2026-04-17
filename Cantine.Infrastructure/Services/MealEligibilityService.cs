@@ -11,44 +11,40 @@ public class MealEligibilityService : IMealEligibilityService
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IMealLogRepository _mealLogRepository;
-    private readonly ISiteContext _siteContext;
     private readonly ILogger<MealEligibilityService> _logger;
 
     public MealEligibilityService(
         IEmployeeRepository employeeRepository,
         IMealLogRepository mealLogRepository,
-        ISiteContext siteContext,
         ILogger<MealEligibilityService> logger)
     {
         _employeeRepository = employeeRepository;
         _mealLogRepository = mealLogRepository;
-        _siteContext = siteContext;
         _logger = logger;
     }
 
-    public async Task<bool> IsEligibleAsync(string matricule, DateOnly date)
+    public async Task<bool> IsEligibleAsync(string matricule, string siteId, DateOnly date)
     {
-        // Le repository filtre déjà par SiteId via ISiteContext
-        var employee = await _employeeRepository.GetByMatriculeAsync(matricule);
+        var employee = await _employeeRepository.GetByMatriculeAndSiteAsync(matricule, siteId);
         if (employee is null)
         {
             _logger.LogWarning("[Éligibilité] Refus — Employé inconnu : {Matricule} (site: {SiteId})",
-                matricule, _siteContext.SiteId ?? "global");
+                matricule, siteId);
             return false;
         }
 
         if (!employee.Actif)
         {
             _logger.LogWarning("[Éligibilité] Refus — Employé inactif : {Matricule} (site: {SiteId})",
-                matricule, _siteContext.SiteId ?? "global");
+                matricule, siteId);
             return false;
         }
 
-        int count = await _mealLogRepository.GetCountTodayAsync(matricule, date);
+        int count = await _mealLogRepository.GetCountTodayBySiteAsync(matricule, siteId, date);
         if (count >= employee.MaxMealsPerDay)
         {
             _logger.LogWarning("[Éligibilité] Refus — Quota journalier atteint pour {Matricule} ({Count}/{Max}) (site: {SiteId})",
-                matricule, count, employee.MaxMealsPerDay, _siteContext.SiteId ?? "global");
+                matricule, count, employee.MaxMealsPerDay, siteId);
             return false;
         }
 

@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
-import { Form, Input, Modal, Switch } from 'antd';
+import { Form, Input, Modal, Select, Switch } from 'antd';
+import { useQuery } from '@tanstack/react-query';
 import type { LecteurDto, CreateLecteurDto, UpdateLecteurDto } from '../api/lecteurs';
+import { getSites } from '../api/sites';
 
 const IP_REGEX = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
 
@@ -16,15 +18,20 @@ export default function LecteurFormModal({ open, onClose, onSubmit, initialValue
   const [form] = Form.useForm();
   const isEdit = !!initialValues;
 
+  const { data: sites = [] } = useQuery({
+    queryKey: ['sites'],
+    queryFn: getSites,
+  });
+
   useEffect(() => {
     if (open) {
       form.setFieldsValue(
         initialValues
           ? { nom: initialValues.nom, adresseIP: initialValues.adresseIP, actif: initialValues.actif }
-          : { nom: '', adresseIP: '', actif: true }
+          : { nom: '', adresseIP: '', actif: true, siteId: sites.length === 1 ? sites[0].siteId : undefined }
       );
     }
-  }, [open, initialValues, form]);
+  }, [open, initialValues, form, sites]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
@@ -43,6 +50,20 @@ export default function LecteurFormModal({ open, onClose, onSubmit, initialValue
       destroyOnHide
     >
       <Form form={form} layout="vertical" requiredMark>
+        {!isEdit && (
+          <Form.Item
+            name="siteId"
+            label="Site"
+            rules={[{ required: true, message: 'Le site est obligatoire' }]}
+          >
+            <Select placeholder="Sélectionnez un site">
+              {sites.map((s) => (
+                <Select.Option key={s.siteId} value={s.siteId}>{s.nom}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+        )}
+
         <Form.Item
           name="nom"
           label="Nom"
@@ -56,10 +77,7 @@ export default function LecteurFormModal({ open, onClose, onSubmit, initialValue
           label="Adresse IP"
           rules={[
             { required: true, message: "L'adresse IP est obligatoire" },
-            {
-              pattern: IP_REGEX,
-              message: 'Format IPv4 invalide (ex. 192.168.1.10)',
-            },
+            { pattern: IP_REGEX, message: 'Format IPv4 invalide (ex. 192.168.1.10)' },
           ]}
         >
           <Input placeholder="192.168.1.10" maxLength={45} />

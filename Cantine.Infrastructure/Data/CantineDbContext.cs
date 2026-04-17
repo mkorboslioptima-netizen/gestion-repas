@@ -15,6 +15,7 @@ public class CantineDbContext : DbContext
     public DbSet<Lecteur> Lecteurs => Set<Lecteur>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<MealLog> MealLogs => Set<MealLog>();
+    public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,5 +25,6 @@ public class CantineDbContext : DbContext
         modelBuilder.ApplyConfiguration(new LecteurConfiguration());
         modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
         modelBuilder.ApplyConfiguration(new MealLogConfiguration());
+        modelBuilder.ApplyConfiguration(new SyncLogConfiguration());
     }
 }

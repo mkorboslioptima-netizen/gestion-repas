@@ -30,8 +30,12 @@ public class LecteurService : ILecteurService
         if (await _repository.IpExistsAsync(dto.AdresseIP))
             throw new InvalidOperationException($"Un lecteur avec l'adresse IP '{dto.AdresseIP}' existe déjà.");
 
+        if (string.IsNullOrWhiteSpace(dto.SiteId))
+            throw new InvalidOperationException("Le SiteId est obligatoire pour créer un lecteur.");
+
         var lecteur = new Lecteur
         {
+            SiteId = dto.SiteId,
             Nom = dto.Nom,
             AdresseIP = dto.AdresseIP,
             Actif = true

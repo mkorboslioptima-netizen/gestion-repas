@@ -12,6 +12,7 @@ public class CreateLecteurDto
 {
     public string Nom { get; set; } = string.Empty;
     public string AdresseIP { get; set; } = string.Empty;
+    public string SiteId { get; set; } = string.Empty;
 }
 
 public class UpdateLecteurDto

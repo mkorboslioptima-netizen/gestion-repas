@@ -72,13 +72,22 @@ public class MorphoListenerService : BackgroundService
                 int bytesRead;
                 while ((bytesRead = await stream.ReadAsync(readBuffer, ct)) > 0)
                 {
-                    buffer.Append(Encoding.ASCII.GetString(readBuffer, 0, bytesRead));
+                    var chunk = Encoding.ASCII.GetString(readBuffer, 0, bytesRead);
+                    _logger.LogInformation("[TCP] Données brutes de {IP} ({Bytes} octets) : [{Data}]",
+                        remoteIp, bytesRead, chunk.Replace("\r", "\\r").Replace("\n", "\\n"));
+
+                    buffer.Append(chunk);
                     var raw = buffer.ToString();
 
                     // Traiter si on a au moins une trame complète :
                     // terminée par '?' (idle) ou par 'O'/'I' précédé d'un chiffre (bouton pressé)
                     bool hasComplete = raw.Contains('?') || Regex.IsMatch(raw, @"\d[OI]");
-                    if (!hasComplete) continue;
+                    if (!hasComplete)
+                    {
+                        _logger.LogDebug("[TCP] Trame incomplète depuis {IP}, buffer courant : [{Buffer}]",
+                            remoteIp, raw.Replace("\r", "\\r").Replace("\n", "\\n"));
+                        continue;
+                    }
 
                     _logger.LogDebug("[Reçu brut de {IP}] : {Raw}", remoteIp, raw);
 
@@ -130,10 +139,22 @@ public class MorphoListenerService : BackgroundService
             return;
         }
 
-        // 2. Vérification éligibilité
+        _logger.LogDebug("[Trame] Lecteur trouvé : {Nom} (SiteId={SiteId})", lecteur.Nom, lecteur.SiteId);
+
+        if (string.IsNullOrEmpty(lecteur.SiteId))
+        {
+            _logger.LogError("[Trame] Lecteur {Nom} ({IP}) sans SiteId — impossible de traiter la trame. Corrigez le lecteur dans l'interface.", lecteur.Nom, remoteIp);
+            return;
+        }
+
+        // 2. Vérification éligibilité (scoped au site du lecteur)
         var today = DateOnly.FromDateTime(frame.Timestamp);
-        bool eligible = await eligibilityService.IsEligibleAsync(frame.Matricule, today);
-        if (!eligible) return;
+        bool eligible = await eligibilityService.IsEligibleAsync(frame.Matricule, lecteur.SiteId, today);
+        if (!eligible)
+        {
+            _logger.LogDebug("[Trame] Employé {Matricule} non éligible sur site {SiteId}", frame.Matricule, lecteur.SiteId);
+            return;
+        }
 
         // 3. Récupération de l'employé (pour le ticket)
         var employee = await employeeRepo.GetByMatriculeAsync(frame.Matricule);
@@ -146,6 +167,7 @@ public class MorphoListenerService : BackgroundService
         // 4. Enregistrement du MealLog
         var mealLog = new MealLog
         {
+            SiteId = lecteur.SiteId,
             Matricule = frame.Matricule,
             LecteurId = lecteur.Id,
             Timestamp = frame.Timestamp,
