@@ -81,26 +81,32 @@ public class RepasController : ControllerBase
         [FromQuery] string? dateDebut = null,
         [FromQuery] string? dateFin = null,
         [FromQuery] string? heureDebut = null,
-        [FromQuery] string? heureFin = null)
+        [FromQuery] string? heureFin = null,
+        [FromQuery] string? siteId = null,
+        [FromQuery] string? repasType = null)
     {
         // Mode filtré : requête directe sur DbContext
-        if (dateDebut is not null || dateFin is not null || heureDebut is not null || heureFin is not null)
+        if (dateDebut is not null || dateFin is not null || heureDebut is not null || heureFin is not null || siteId is not null || repasType is not null)
         {
             if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
                     out var start, out var end, out var tDebut, out var tFin, out var error))
                 return BadRequest(new { message = error });
 
-            var logs = await _context.MealLogs
+            var query = _context.MealLogs
                 .AsNoTracking()
                 .Include(m => m.Employee)
                 .Include(m => m.Lecteur)
-                .Where(m => m.Timestamp >= start && m.Timestamp <= end)
-                .OrderByDescending(m => m.Timestamp)
-                .ToListAsync();
+                .Where(m => m.Timestamp >= start && m.Timestamp <= end);
+
+            if (siteId is not null)
+                query = query.Where(m => m.SiteId == siteId);
+
+            var logs = await query.OrderByDescending(m => m.Timestamp).ToListAsync();
 
             var filtered = logs
                 .Where(m => m.Timestamp.TimeOfDay >= tDebut && m.Timestamp.TimeOfDay <= tFin)
-                .Take(Math.Min(limit > 50 ? limit : 500, 500))
+                .Where(m => repasType == null || m.RepasType.ToString() == repasType)
+                .Take(Math.Min(limit > 50 ? limit : 500, 5000))
                 .Select(m => new PassageDto
                 {
                     Id = m.Id,
@@ -128,16 +134,17 @@ public class RepasController : ControllerBase
         [FromQuery] string? dateDebut = null,
         [FromQuery] string? dateFin = null,
         [FromQuery] string? heureDebut = null,
-        [FromQuery] string? heureFin = null)
+        [FromQuery] string? heureFin = null,
+        [FromQuery] string? siteId = null)
     {
         if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
                 out var start, out var end, out var tDebut, out var tFin, out var error))
             return BadRequest(new { message = error });
 
-        var sites = await _context.Sites
-            .AsNoTracking()
-            .Where(s => s.Actif)
-            .ToListAsync();
+        var sitesQuery = _context.Sites.AsNoTracking().Where(s => s.Actif);
+        if (siteId is not null)
+            sitesQuery = sitesQuery.Where(s => s.SiteId == siteId);
+        var sites = await sitesQuery.ToListAsync();
 
         var stats = new List<RepasStatsDto>();
 
@@ -184,17 +191,47 @@ public class RepasController : ControllerBase
         [FromQuery] string? dateDebut = null,
         [FromQuery] string? dateFin = null,
         [FromQuery] string? heureDebut = null,
-        [FromQuery] string? heureFin = null)
+        [FromQuery] string? heureFin = null,
+        [FromQuery] string? siteId = null,
+        [FromQuery] string? repasType = null)
     {
         if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
                 out var start, out var end, out var tDebut, out var tFin, out var error))
             return BadRequest(new { message = error });
 
-        var bytes = await _excelService.GenererExportPassagesAsync(start, end, tDebut, tFin);
+        var bytes = await _excelService.GenererExportPassagesAsync(start, end, tDebut, tFin, siteId, repasType);
 
         var dDebut = dateDebut ?? DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
         var dFin = dateFin ?? dDebut;
         var fileName = $"passages-{dDebut}-{dFin}.xlsx";
+
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    // ── GET /api/repas/export-global ─────────────────────────────────────────
+    [HttpGet("export-global")]
+    [Authorize(Roles = "AdminSEBN,ResponsableCantine,Prestataire")]
+    public async Task<IActionResult> GetExportGlobal(
+        [FromQuery] string? dateDebut = null,
+        [FromQuery] string? dateFin = null,
+        [FromQuery] string? heureDebut = null,
+        [FromQuery] string? heureFin = null,
+        [FromQuery] string? siteId = null,
+        [FromQuery] string? repasType = null)
+    {
+        if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
+                out var start, out var end, out var tDebut, out var tFin, out var error))
+            return BadRequest(new { message = error });
+
+        string? siteNom = null;
+        if (siteId is not null)
+            siteNom = (await _context.Sites.AsNoTracking().FirstOrDefaultAsync(s => s.SiteId == siteId))?.Nom;
+
+        var bytes = await _excelService.GenererExportGlobalAsync(start, end, tDebut, tFin, siteId, repasType, siteNom);
+
+        var dDebut = dateDebut ?? DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
+        var dFin = dateFin ?? dDebut;
+        var fileName = $"resume-repas-{dDebut}-{dFin}.xlsx";
 
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }

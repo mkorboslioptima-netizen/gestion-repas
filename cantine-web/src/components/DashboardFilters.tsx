@@ -1,12 +1,17 @@
 import { useState } from 'react';
-import { Button, DatePicker, Space, TimePicker } from 'antd';
+import { Button, DatePicker, Select, Space, TimePicker } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
+import { useQuery } from '@tanstack/react-query';
+import { getSites } from '../api/sites';
+import { useRole } from '../auth/useRole';
 
 export interface FiltreState {
   dateDebut: string;
   dateFin: string;
   heureDebut: string;
   heureFin: string;
+  repasType?: 'PlatChaud' | 'Sandwich';
+  siteId?: string;
 }
 
 interface Props {
@@ -19,9 +24,18 @@ const FMT_TIME = 'HH:mm';
 function today() { return dayjs().format(FMT_DATE); }
 
 export default function DashboardFilters({ onApply }: Props) {
+  const role = useRole();
   const [dates, setDates] = useState<[Dayjs, Dayjs]>([dayjs(), dayjs()]);
   const [heureDebut, setHeureDebut] = useState<Dayjs>(dayjs('00:00', FMT_TIME));
   const [heureFin, setHeureFin]     = useState<Dayjs>(dayjs('23:59', FMT_TIME));
+  const [repasType, setRepasType]   = useState<'PlatChaud' | 'Sandwich' | undefined>(undefined);
+  const [siteId, setSiteId]         = useState<string | undefined>(undefined);
+
+  const { data: sites = [] } = useQuery({
+    queryKey: ['sites'],
+    queryFn: getSites,
+    enabled: role === 'AdminSEBN',
+  });
 
   function handleApply() {
     onApply({
@@ -29,6 +43,8 @@ export default function DashboardFilters({ onApply }: Props) {
       dateFin:   dates[1].format(FMT_DATE),
       heureDebut: heureDebut.format(FMT_TIME),
       heureFin:   heureFin.format(FMT_TIME),
+      repasType,
+      siteId,
     });
   }
 
@@ -37,7 +53,9 @@ export default function DashboardFilters({ onApply }: Props) {
     setDates([now, now]);
     setHeureDebut(dayjs('00:00', FMT_TIME));
     setHeureFin(dayjs('23:59', FMT_TIME));
-    onApply({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59' });
+    setRepasType(undefined);
+    setSiteId(undefined);
+    onApply({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59', repasType: undefined, siteId: undefined });
   }
 
   return (
@@ -76,6 +94,62 @@ export default function DashboardFilters({ onApply }: Props) {
         />
       </Space>
 
+      <Select
+        size="small"
+        style={{ width: 130 }}
+        value={repasType ?? ''}
+        onChange={(v) => {
+          const val = v === '' ? undefined : v as 'PlatChaud' | 'Sandwich';
+          setRepasType(val);
+          onApply({
+            dateDebut: dates[0].format(FMT_DATE),
+            dateFin: dates[1].format(FMT_DATE),
+            heureDebut: heureDebut.format(FMT_TIME),
+            heureFin: heureFin.format(FMT_TIME),
+            repasType: val,
+            siteId,
+          });
+        }}
+        options={[
+          { value: '', label: 'Tous les repas' },
+          { value: 'PlatChaud', label: 'Plat chaud' },
+          { value: 'Sandwich', label: 'Sandwich' },
+        ]}
+      />
+
+      {role === 'AdminSEBN' && (
+        <Select
+          size="small"
+          style={{ width: 130 }}
+          value={siteId ?? ''}
+          onChange={(v) => {
+            const val = v === '' ? undefined : v;
+            setSiteId(val);
+            onApply({
+              dateDebut: dates[0].format(FMT_DATE),
+              dateFin: dates[1].format(FMT_DATE),
+              heureDebut: heureDebut.format(FMT_TIME),
+              heureFin: heureFin.format(FMT_TIME),
+              repasType,
+              siteId: val,
+            });
+          }}
+          options={[
+            { value: '', label: 'Tous les sites' },
+            ...sites.filter(s => s.actif).map(s => ({ value: s.siteId, label: s.nom })),
+          ]}
+        />
+      )}
+
+      <Button size="small" onClick={() => {
+        const now = dayjs();
+        setDates([now, now]);
+        setHeureDebut(dayjs('00:00', FMT_TIME));
+        setHeureFin(dayjs('23:59', FMT_TIME));
+        onApply({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59', repasType, siteId });
+      }}>
+        Aujourd'hui
+      </Button>
       <Button size="small" type="primary" onClick={handleApply}>
         Appliquer
       </Button>

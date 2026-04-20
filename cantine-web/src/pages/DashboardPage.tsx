@@ -3,11 +3,11 @@ import { Col, Row, Button, message } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, LabelList,
 } from 'recharts';
 import dayjs from 'dayjs';
 import {
-  getHistoriqueJour, getStatsJour, getExportExcel, type PassageDto,
+  getHistoriqueJour, getStatsJour, getExportExcel, getExportGlobal, type PassageDto,
 } from '../api/repas';
 import KpiCard from '../components/KpiCard';
 import RoleGate from '../components/RoleGate';
@@ -15,18 +15,60 @@ import DashboardFilters, { type FiltreState } from '../components/DashboardFilte
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function buildHourlyData(passages: PassageDto[]) {
-  const counts: Record<number, number> = {};
-  for (let h = 0; h < 24; h++) counts[h] = 0;
-  for (const p of passages) counts[dayjs(p.timestamp).hour()]++;
-  return Object.entries(counts)
-    .filter(([h]) => Number(h) >= 6 && Number(h) <= 20)
-    .map(([h, count]) => ({ heure: `${h}h`, passages: count }));
+type ChartMode = 'heure' | 'jour' | 'mois';
+
+function getChartMode(dateDebut: string, dateFin: string): ChartMode {
+  const diff = dayjs(dateFin).diff(dayjs(dateDebut), 'day');
+  if (diff === 0) return 'heure';
+  if (diff <= 60) return 'jour';
+  return 'mois';
+}
+
+function buildChartData(passages: PassageDto[], mode: ChartMode, dateDebut: string, dateFin: string) {
+  const count = (list: PassageDto[], type: string) => list.filter(p => p.repasType === type).length;
+
+  if (mode === 'heure') {
+    const platChaud: Record<number, number> = {};
+    const sandwich:  Record<number, number> = {};
+    for (let h = 0; h < 24; h++) { platChaud[h] = 0; sandwich[h] = 0; }
+    for (const p of passages) {
+      const h = dayjs(p.timestamp).hour();
+      if (p.repasType === 'PlatChaud') platChaud[h]++; else sandwich[h]++;
+    }
+    return Array.from({ length: 24 }, (_, h) => h)
+      .filter(h => h >= 6 && h <= 20)
+      .map(h => ({ label: `${h}h`, platChaud: platChaud[h], sandwich: sandwich[h] }));
+  }
+
+  if (mode === 'jour') {
+    const result = [];
+    let cur = dayjs(dateDebut);
+    const fin = dayjs(dateFin);
+    while (!cur.isAfter(fin)) {
+      const dayStr = cur.format('YYYY-MM-DD');
+      const dayP = passages.filter(p => dayjs(p.timestamp).format('YYYY-MM-DD') === dayStr);
+      result.push({ label: cur.format('DD/MM'), platChaud: count(dayP, 'PlatChaud'), sandwich: count(dayP, 'Sandwich') });
+      cur = cur.add(1, 'day');
+    }
+    return result;
+  }
+
+  // mois
+  const result = [];
+  let cur = dayjs(dateDebut).startOf('month');
+  const fin = dayjs(dateFin).startOf('month');
+  while (!cur.isAfter(fin)) {
+    const monthStr = cur.format('YYYY-MM');
+    const monthP = passages.filter(p => dayjs(p.timestamp).format('YYYY-MM') === monthStr);
+    result.push({ label: cur.format('MMM YY'), platChaud: count(monthP, 'PlatChaud'), sandwich: count(monthP, 'Sandwich') });
+    cur = cur.add(1, 'month');
+  }
+  return result;
 }
 
 function todayStr() { return dayjs().format('YYYY-MM-DD'); }
 function defaultFiltre(): FiltreState {
-  return { dateDebut: todayStr(), dateFin: todayStr(), heureDebut: '00:00', heureFin: '23:59' };
+  return { dateDebut: todayStr(), dateFin: todayStr(), heureDebut: '00:00', heureFin: '23:59', repasType: undefined, siteId: undefined };
 }
 function filtreIsToday(f: FiltreState) {
   const today = todayStr();
@@ -41,6 +83,7 @@ export default function DashboardPage() {
   // ssePassages = passages temps-réel ajoutées via SSE uniquement
   const [ssePassages, setSsePassages] = useState<PassageDto[]>([]);
   const [exportLoading, setExportLoading] = useState(false);
+  const [exportGlobalLoading, setExportGlobalLoading] = useState(false);
   const [filtre, setFiltre] = useState<FiltreState>(defaultFiltre);
   const esRef = useRef<EventSource | null>(null);
 
@@ -50,7 +93,9 @@ export default function DashboardPage() {
     dateFin: filtre.dateFin,
     heureDebut: filtre.heureDebut,
     heureFin: filtre.heureFin,
-  }), [filtre.dateDebut, filtre.dateFin, filtre.heureDebut, filtre.heureFin]);
+    siteId: filtre.siteId,
+    repasType: filtre.repasType,
+  }), [filtre.dateDebut, filtre.dateFin, filtre.heureDebut, filtre.heureFin, filtre.siteId, filtre.repasType]);
 
   const sseActif = filtreIsToday(filtre);
 
@@ -60,10 +105,23 @@ export default function DashboardPage() {
     refetchInterval: sseActif ? 30_000 : false,
   });
 
+  const hierParams = useMemo(() => {
+    const hier = dayjs(filtre.dateDebut).subtract(1, 'day').format('YYYY-MM-DD');
+    return { dateDebut: hier, dateFin: hier, heureDebut: filtre.heureDebut, heureFin: filtre.heureFin, siteId: filtre.siteId, repasType: filtre.repasType };
+  }, [filtre.dateDebut, filtre.heureDebut, filtre.heureFin, filtre.siteId, filtre.repasType]);
+
+  const { data: statsHier = [] } = useQuery({
+    queryKey: ['repas-stats-hier', hierParams],
+    queryFn: () => getStatsJour(hierParams),
+  });
+
+  const chartMode = useMemo(() => getChartMode(filtre.dateDebut, filtre.dateFin), [filtre.dateDebut, filtre.dateFin]);
+  const histLimit = chartMode === 'heure' ? 500 : chartMode === 'jour' ? 2000 : 5000;
+
   // historique = données depuis l'API (filtrées)
   const { data: historique = [] } = useQuery({
-    queryKey: ['repas-historique-jour', filtreParams],
-    queryFn: () => getHistoriqueJour(50, filtreParams),
+    queryKey: ['repas-historique-jour', filtreParams, histLimit],
+    queryFn: () => getHistoriqueJour(histLimit, filtreParams),
   });
 
   // Réinitialiser les passages SSE quand le filtre change
@@ -114,17 +172,59 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleExportGlobal() {
+    setExportGlobalLoading(true);
+    try {
+      const blob = await getExportGlobal(filtreParams);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `resume-repas-${filtre.dateDebut}-${filtre.dateFin}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      message.error('Erreur lors de l\'export global');
+    } finally {
+      setExportGlobalLoading(false);
+    }
+  }
+
   // ── Agrégats ────────────────────────────────────────────────────────────────
   const totalPassages = stats.reduce((s, x) => s + x.totalPassages, 0);
   const totalPlatChaud = stats.reduce((s, x) => s + x.platChaud, 0);
   const totalSandwich  = stats.reduce((s, x) => s + x.sandwich, 0);
   const totalQuota     = stats.reduce((s, x) => s + x.quotaAtteint, 0);
 
-  const hourlyData = useMemo(() => buildHourlyData(feedPassages), [feedPassages]);
+  const hierPassages  = statsHier.reduce((s, x) => s + x.totalPassages, 0);
+  const hierPlatChaud = statsHier.reduce((s, x) => s + x.platChaud, 0);
+  const hierSandwich  = statsHier.reduce((s, x) => s + x.sandwich, 0);
+  const hierQuota     = statsHier.reduce((s, x) => s + x.quotaAtteint, 0);
+
+  function calcTrend(today: number, hier: number): number | null {
+    if (statsHier.length === 0) return null;
+    if (hier === 0) return today > 0 ? 100 : null;
+    return ((today - hier) / hier) * 100;
+  }
+
+  const trendPassages  = calcTrend(totalPassages, hierPassages);
+  const trendPlatChaud = calcTrend(totalPlatChaud, hierPlatChaud);
+  const trendSandwich  = calcTrend(totalSandwich, hierSandwich);
+  const trendQuota     = calcTrend(totalQuota, hierQuota);
+
+  const filteredFeed = useMemo(() =>
+    filtre.repasType ? feedPassages.filter(p => p.repasType === filtre.repasType) : feedPassages,
+  [feedPassages, filtre.repasType]);
+
+  const chartData = useMemo(() => buildChartData(filteredFeed, chartMode, filtre.dateDebut, filtre.dateFin),
+    [filteredFeed, chartMode, filtre.dateDebut, filtre.dateFin]);
   const pieData = useMemo(() => [
     { name: 'Plats chauds', value: totalPlatChaud },
     { name: 'Sandwich', value: totalSandwich },
   ], [totalPlatChaud, totalSandwich]);
+
+  const siteData = useMemo(() =>
+    stats.map(s => ({ site: s.nomSite, platChaud: s.platChaud, sandwich: s.sandwich })),
+  [stats]);
 
   return (
     <div style={{ padding: 18 }}>
@@ -133,39 +233,40 @@ export default function DashboardPage() {
       <DashboardFilters onApply={setFiltre} />
 
       {/* Barre d'actions */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 16 }}>
         <RoleGate allowed={['Prestataire', 'AdminSEBN', 'ResponsableCantine']}>
+          <Button onClick={handleExportGlobal} loading={exportGlobalLoading} type="primary" ghost>
+            Export résumé
+          </Button>
           <Button onClick={handleExportExcel} loading={exportLoading} type="primary" ghost>
-            Exporter en Excel
+            Export détaillé
           </Button>
         </RoleGate>
       </div>
 
       {/* KPI grid */}
-      <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
-        <Col xs={12} sm={6}>
-          <KpiCard label="Repas servis" value={totalPassages} color="#2563eb" bgColor="#eff6ff"
-            icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>}
-            percent={Math.min(100, Math.round(totalPassages / 5))} />
-        </Col>
-        <Col xs={12} sm={6}>
-          <KpiCard label="Plats chauds" value={totalPlatChaud} color="#16a34a" bgColor="#f0fdf4"
-            icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>}
-            percent={totalPassages ? Math.round(totalPlatChaud / totalPassages * 100) : 0} />
-        </Col>
-        <Col xs={12} sm={6}>
-          <KpiCard label="Sandwichs" value={totalSandwich} color="#7c3aed" bgColor="#fdf4ff"
-            icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>}
-            percent={totalPassages ? Math.round(totalSandwich / totalPassages * 100) : 0} />
-        </Col>
-        <Col xs={12} sm={6}>
-          <KpiCard label="Quota atteint" value={totalQuota}
-            color={totalQuota > 0 ? '#dc2626' : '#16a34a'}
-            bgColor={totalQuota > 0 ? '#fef2f2' : '#f0fdf4'}
-            icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}
-            percent={undefined} />
-        </Col>
-      </Row>
+      {(() => {
+        const jourUnique = filtre.dateDebut === filtre.dateFin;
+        return (
+          <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
+            <Col xs={12} sm={8}>
+              <KpiCard label="Repas servis" value={totalPassages} color="#2563eb" bgColor="#eff6ff"
+                icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>}
+                percent={Math.min(100, Math.round(totalPassages / 5))} trend={jourUnique ? trendPassages : undefined} />
+            </Col>
+            <Col xs={12} sm={8}>
+              <KpiCard label="Plats chauds" value={totalPlatChaud} color="#2563eb" bgColor="#eff6ff"
+                icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>}
+                percent={totalPassages ? Math.round(totalPlatChaud / totalPassages * 100) : 0} trend={jourUnique ? trendPlatChaud : undefined} />
+            </Col>
+            <Col xs={12} sm={8}>
+              <KpiCard label="Sandwichs" value={totalSandwich} color="#7c3aed" bgColor="#fdf4ff"
+                icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>}
+                percent={totalPassages ? Math.round(totalSandwich / totalPassages * 100) : 0} trend={jourUnique ? trendSandwich : undefined} />
+            </Col>
+          </Row>
+        );
+      })()}
 
       {/* Graphiques */}
       <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
@@ -192,23 +293,56 @@ export default function DashboardPage() {
         <Col xs={24} md={16}>
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
-              Passages par heure
+              {chartMode === 'heure' ? 'Passages par heure' : chartMode === 'jour' ? 'Passages par jour' : 'Passages par mois'}
               <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400, marginLeft: 6 }}>
-                {filtre.heureDebut}–{filtre.heureFin}
+                {filtre.dateDebut === filtre.dateFin ? filtre.dateDebut : `${filtre.dateDebut} → ${filtre.dateFin}`}
               </span>
             </div>
             <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={hourlyData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+              <BarChart data={chartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="heure" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="label" tick={{ fontSize: chartMode === 'jour' && chartData.length > 20 ? 9 : 11 }} interval={chartMode === 'jour' && chartData.length > 14 ? Math.ceil(chartData.length / 14) : 0} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="passages" fill="#2563eb" radius={[3, 3, 0, 0]} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="platChaud" name="Plat chaud" stackId="a" fill="#2563eb" />
+                <Bar dataKey="sandwich"  name="Sandwich"   stackId="a" fill="#7c3aed" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Col>
       </Row>
+
+      {/* Histogramme Repas par site — AdminSEBN uniquement */}
+      <RoleGate allowed={['AdminSEBN']}>
+        <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
+          <Col xs={24}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                Repas par site
+                <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400, marginLeft: 6 }}>
+                  {filtre.dateDebut === filtre.dateFin ? filtre.dateDebut : `${filtre.dateDebut} → ${filtre.dateFin}`}
+                </span>
+              </div>
+              <ResponsiveContainer width="100%" height={Math.max(180, siteData.length * 80 + 60)}>
+                <BarChart data={siteData} layout="vertical" margin={{ top: 16, right: 32, left: 8, bottom: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="site" tick={{ fontSize: 11 }} width={120} />
+                  <Tooltip />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="platChaud" name="Plat chaud" fill="#2563eb" radius={[0, 3, 3, 0]}>
+                    <LabelList dataKey="platChaud" position="right" style={{ fontSize: 10, fill: '#2563eb' }} />
+                  </Bar>
+                  <Bar dataKey="sandwich" name="Sandwich" fill="#7c3aed" radius={[0, 3, 3, 0]}>
+                    <LabelList dataKey="sandwich" position="right" style={{ fontSize: 10, fill: '#7c3aed' }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Col>
+        </Row>
+      </RoleGate>
 
       {/* Feed */}
       <div className="feed-card">
@@ -225,9 +359,9 @@ export default function DashboardPage() {
             <tr><th>Nom</th><th>Matricule</th><th>Type de repas</th><th>Pointage</th></tr>
           </thead>
           <tbody>
-            {feedPassages.length === 0 ? (
+            {filteredFeed.length === 0 ? (
               <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text2)', padding: 24 }}>Aucun passage sur cette période</td></tr>
-            ) : feedPassages.slice(0, 8).map(p => (
+            ) : filteredFeed.slice(0, 8).map(p => (
               <tr key={p.id}>
                 <td style={{ fontWeight: 500 }}>{p.nom} {p.prenom}</td>
                 <td style={{ color: 'var(--text2)' }}>{p.matricule}</td>

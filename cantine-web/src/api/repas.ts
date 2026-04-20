@@ -26,6 +26,8 @@ export interface FiltreParams {
   dateFin?: string;
   heureDebut?: string;
   heureFin?: string;
+  siteId?: string;
+  repasType?: string;
 }
 
 export async function getStatsJour(params?: FiltreParams): Promise<RepasStatsDto[]> {
@@ -42,6 +44,14 @@ export async function getHistoriqueJour(limit = 50, params?: FiltreParams): Prom
 
 export async function getExportExcel(params: FiltreParams): Promise<Blob> {
   const { data } = await apiClient.get<Blob>('/api/repas/export', {
+    params,
+    responseType: 'blob',
+  });
+  return data;
+}
+
+export async function getExportGlobal(params: FiltreParams): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>('/api/repas/export-global', {
     params,
     responseType: 'blob',
   });
