@@ -32,6 +32,17 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
             .HasMaxLength(20)
             .IsRequired(false);
 
+        builder.Property(u => u.IsActive)
+            .HasDefaultValue(true)
+            .IsRequired();
+
+        builder.Property(u => u.CreatedAt)
+            .IsRequired();
+
+        builder.Property(u => u.CreatedBy)
+            .HasMaxLength(200)
+            .IsRequired(false);
+
         builder.HasOne(u => u.Site)
             .WithMany()
             .HasForeignKey(u => u.SiteId)

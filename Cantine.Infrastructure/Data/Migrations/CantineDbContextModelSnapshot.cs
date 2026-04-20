@@ -53,6 +53,18 @@ namespace Cantine.Infrastructure.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -61,6 +73,41 @@ namespace Cantine.Infrastructure.Data.Migrations
                     b.HasIndex("SiteId");
 
                     b.ToTable("AppUsers");
+                });
+
+            modelBuilder.Entity("Cantine.Core.Entities.UserAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("TargetUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorId");
+
+                    b.HasIndex("TargetUserId");
+
+                    b.ToTable("UserAuditLogs");
                 });
 
             modelBuilder.Entity("Cantine.Core.Entities.Employee", b =>
@@ -348,6 +395,25 @@ namespace Cantine.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Site");
+                });
+
+            modelBuilder.Entity("Cantine.Core.Entities.UserAuditLog", b =>
+                {
+                    b.HasOne("Cantine.Core.Entities.AppUser", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Cantine.Core.Entities.AppUser", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("TargetUser");
                 });
 #pragma warning restore 612, 618
         }

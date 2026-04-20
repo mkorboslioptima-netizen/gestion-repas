@@ -29,6 +29,9 @@ public class AuthController : ControllerBase
         if (result is null)
             return Unauthorized(new { message = "Email ou mot de passe incorrect." });
 
+        if (result.Error is not null)
+            return Unauthorized(new { message = result.Error });
+
         return Ok(result);
     }
 

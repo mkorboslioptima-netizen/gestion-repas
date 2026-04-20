@@ -1,8 +1,10 @@
+using System.Globalization;
 using System.Text.Json;
 using Cantine.Core.DTOs;
 using Cantine.Core.Enums;
 using Cantine.Core.Interfaces;
 using Cantine.Infrastructure.Data;
+using Cantine.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,35 +18,126 @@ public class RepasController : ControllerBase
 {
     private readonly IMealLogRepository _mealLogRepo;
     private readonly CantineDbContext _context;
+    private readonly ExcelExportService _excelService;
 
-    public RepasController(IMealLogRepository mealLogRepo, CantineDbContext context)
+    public RepasController(IMealLogRepository mealLogRepo, CantineDbContext context, ExcelExportService excelService)
     {
         _mealLogRepo = mealLogRepo;
         _context = context;
+        _excelService = excelService;
     }
 
-    // GET /api/repas/historique-jour?limit=50
-    [HttpGet("historique-jour")]
-    public async Task<IActionResult> GetHistoriqueJour([FromQuery] int limit = 50)
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static bool TryParseFiltreParams(
+        string? dateDebutStr, string? dateFinStr,
+        string? heureDebutStr, string? heureFinStr,
+        out DateTime start, out DateTime end,
+        out TimeSpan heureDebut, out TimeSpan heureFin,
+        out string? error)
     {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+
+        DateOnly dateDebut = today;
+        DateOnly dateFin = today;
+        heureDebut = TimeSpan.Zero;
+        heureFin = new TimeSpan(23, 59, 59);
+        start = default;
+        end = default;
+        error = null;
+
+        if (dateDebutStr is not null && !DateOnly.TryParseExact(dateDebutStr, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out dateDebut))
+        { error = $"Format dateDebut invalide : '{dateDebutStr}'. Attendu : yyyy-MM-dd"; return false; }
+
+        if (dateFinStr is not null && !DateOnly.TryParseExact(dateFinStr, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out dateFin))
+        { error = $"Format dateFin invalide : '{dateFinStr}'. Attendu : yyyy-MM-dd"; return false; }
+
+        if (dateDebut > dateFin)
+        { error = "dateDebut ne peut pas être supérieure à dateFin."; return false; }
+
+        if (heureDebutStr is not null)
+        {
+            if (!TimeSpan.TryParseExact(heureDebutStr, @"hh\:mm", CultureInfo.InvariantCulture, out heureDebut))
+            { error = $"Format heureDebut invalide : '{heureDebutStr}'. Attendu : HH:mm"; return false; }
+        }
+
+        if (heureFinStr is not null)
+        {
+            if (!TimeSpan.TryParseExact(heureFinStr, @"hh\:mm", CultureInfo.InvariantCulture, out heureFin))
+            { error = $"Format heureFin invalide : '{heureFinStr}'. Attendu : HH:mm"; return false; }
+            else
+                heureFin = heureFin.Add(TimeSpan.FromSeconds(59));
+        }
+
+        start = dateDebut.ToDateTime(TimeOnly.MinValue);
+        end = dateFin.ToDateTime(TimeOnly.MaxValue);
+        return true;
+    }
+
+    // ── GET /api/repas/historique-jour ────────────────────────────────────────
+    [HttpGet("historique-jour")]
+    public async Task<IActionResult> GetHistoriqueJour(
+        [FromQuery] int limit = 50,
+        [FromQuery] string? dateDebut = null,
+        [FromQuery] string? dateFin = null,
+        [FromQuery] string? heureDebut = null,
+        [FromQuery] string? heureFin = null)
+    {
+        // Mode filtré : requête directe sur DbContext
+        if (dateDebut is not null || dateFin is not null || heureDebut is not null || heureFin is not null)
+        {
+            if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
+                    out var start, out var end, out var tDebut, out var tFin, out var error))
+                return BadRequest(new { message = error });
+
+            var logs = await _context.MealLogs
+                .AsNoTracking()
+                .Include(m => m.Employee)
+                .Include(m => m.Lecteur)
+                .Where(m => m.Timestamp >= start && m.Timestamp <= end)
+                .OrderByDescending(m => m.Timestamp)
+                .ToListAsync();
+
+            var filtered = logs
+                .Where(m => m.Timestamp.TimeOfDay >= tDebut && m.Timestamp.TimeOfDay <= tFin)
+                .Take(Math.Min(limit > 50 ? limit : 500, 500))
+                .Select(m => new PassageDto
+                {
+                    Id = m.Id,
+                    Matricule = m.Matricule,
+                    Nom = m.Employee?.Nom ?? string.Empty,
+                    Prenom = m.Employee?.Prenom ?? string.Empty,
+                    Timestamp = m.Timestamp,
+                    RepasType = m.RepasType,
+                    LecteurNom = m.Lecteur?.Nom ?? string.Empty,
+                })
+                .ToList();
+
+            return Ok(filtered);
+        }
+
+        // Mode défaut : aujourd'hui
         var today = DateOnly.FromDateTime(DateTime.Now);
         var historique = await _mealLogRepo.GetHistoriqueJourAsync(today, Math.Clamp(limit, 1, 200));
         return Ok(historique);
     }
 
-    // GET /api/repas/stats-jour
+    // ── GET /api/repas/stats-jour ─────────────────────────────────────────────
     [HttpGet("stats-jour")]
-    public async Task<IActionResult> GetStatsJour()
+    public async Task<IActionResult> GetStatsJour(
+        [FromQuery] string? dateDebut = null,
+        [FromQuery] string? dateFin = null,
+        [FromQuery] string? heureDebut = null,
+        [FromQuery] string? heureFin = null)
     {
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
+                out var start, out var end, out var tDebut, out var tFin, out var error))
+            return BadRequest(new { message = error });
 
         var sites = await _context.Sites
             .AsNoTracking()
             .Where(s => s.Actif)
             .ToListAsync();
-
-        var start = today.ToDateTime(TimeOnly.MinValue);
-        var end = today.ToDateTime(TimeOnly.MaxValue);
 
         var stats = new List<RepasStatsDto>();
 
@@ -55,15 +148,18 @@ public class RepasController : ControllerBase
                 .Where(m => m.SiteId == site.SiteId && m.Timestamp >= start && m.Timestamp <= end)
                 .ToListAsync();
 
-            // Employés ayant atteint leur quota
-            var matricules = logs.Select(l => l.Matricule).Distinct();
+            var logsFiltered = logs
+                .Where(m => m.Timestamp.TimeOfDay >= tDebut && m.Timestamp.TimeOfDay <= tFin)
+                .ToList();
+
+            var matricules = logsFiltered.Select(l => l.Matricule).Distinct();
             int quotaAtteint = 0;
             foreach (var matricule in matricules)
             {
                 var employee = await _context.Employees
                     .AsNoTracking()
                     .FirstOrDefaultAsync(e => e.SiteId == site.SiteId && e.Matricule == matricule);
-                if (employee is not null && logs.Count(l => l.Matricule == matricule) >= employee.MaxMealsPerDay)
+                if (employee is not null && logsFiltered.Count(l => l.Matricule == matricule) >= employee.MaxMealsPerDay)
                     quotaAtteint++;
             }
 
@@ -71,9 +167,9 @@ public class RepasController : ControllerBase
             {
                 SiteId = site.SiteId,
                 NomSite = site.Nom,
-                TotalPassages = logs.Count,
-                PlatChaud = logs.Count(l => l.RepasType == RepasType.PlatChaud),
-                Sandwich = logs.Count(l => l.RepasType == RepasType.Sandwich),
+                TotalPassages = logsFiltered.Count,
+                PlatChaud = logsFiltered.Count(l => l.RepasType == RepasType.PlatChaud),
+                Sandwich = logsFiltered.Count(l => l.RepasType == RepasType.Sandwich),
                 QuotaAtteint = quotaAtteint
             });
         }
@@ -81,7 +177,29 @@ public class RepasController : ControllerBase
         return Ok(stats);
     }
 
-    // GET /api/repas/flux  — SSE avec DB polling toutes les secondes
+    // ── GET /api/repas/export ─────────────────────────────────────────────────
+    [HttpGet("export")]
+    [Authorize(Roles = "AdminSEBN,ResponsableCantine,Prestataire")]
+    public async Task<IActionResult> GetExport(
+        [FromQuery] string? dateDebut = null,
+        [FromQuery] string? dateFin = null,
+        [FromQuery] string? heureDebut = null,
+        [FromQuery] string? heureFin = null)
+    {
+        if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
+                out var start, out var end, out var tDebut, out var tFin, out var error))
+            return BadRequest(new { message = error });
+
+        var bytes = await _excelService.GenererExportPassagesAsync(start, end, tDebut, tFin);
+
+        var dDebut = dateDebut ?? DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
+        var dFin = dateFin ?? dDebut;
+        var fileName = $"passages-{dDebut}-{dFin}.xlsx";
+
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    // ── GET /api/repas/flux — SSE ─────────────────────────────────────────────
     [HttpGet("flux")]
     public async Task GetFlux(CancellationToken ct)
     {
@@ -91,7 +209,6 @@ public class RepasController : ControllerBase
 
         var today = DateOnly.FromDateTime(DateTime.Now);
 
-        // Initialiser lastId au dernier MealLog existant du jour
         var lastId = await _context.MealLogs
             .AsNoTracking()
             .Where(m => m.Timestamp >= today.ToDateTime(TimeOnly.MinValue))
@@ -99,7 +216,6 @@ public class RepasController : ControllerBase
             .Select(m => (int?)m.Id)
             .FirstOrDefaultAsync(ct) ?? 0;
 
-        // Émettre un commentaire keep-alive initial
         await Response.WriteAsync(": connected\n\n", ct);
         await Response.Body.FlushAsync(ct);
 
@@ -117,12 +233,6 @@ public class RepasController : ControllerBase
                 });
                 await Response.WriteAsync($"data: {json}\n\n", ct);
                 await Response.Body.FlushAsync(ct);
-            }
-
-            if (!nouveaux.Any())
-            {
-                // Keep-alive toutes les 15s si pas de données
-                // (géré implicitement par le timer — pas besoin de commentaire supplémentaire)
             }
         }
     }
