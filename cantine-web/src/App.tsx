@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import PrivateRoute from './auth/PrivateRoute';
+import { useRole } from './auth/useRole';
 import { SiteProvider, useSite } from './context/SiteContext';
 import { useQuery } from '@tanstack/react-query';
 import { getSites } from './api/sites';
@@ -11,6 +12,7 @@ import SitesPage from './pages/admin/SitesPage';
 import EmployesPage from './pages/admin/EmployesPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
+import GestionComptesPage from './pages/admin/GestionComptesPage';
 import 'antd/dist/reset.css';
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
@@ -24,6 +26,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/lecteurs': 'Lecteurs',
   '/admin/employes': 'Employés',
   '/admin/sites': 'Sites',
+  '/admin/comptes': 'Gestion des comptes',
 };
 
 // ── Header bar ─────────────────────────────────────────────────────────────
@@ -45,19 +48,20 @@ function AppHeader() {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 function Sidebar() {
-  const { roles, logout, siteId: authSiteId } = useAuth();
-  const isAdmin = roles.includes('AdminSEBN');
+  const { logout, siteId: authSiteId } = useAuth();
+  const role = useRole();
+  const isAdmin = role === 'AdminSEBN';
+  const isGestionnaire = role === 'ResponsableCantine';
+  const isPrestataire = role === 'Prestataire';
 
   const { data: sites = [] } = useQuery({
     queryKey: ['sites'],
     queryFn: getSites,
   });
 
-  const role = roles[0] ?? '';
-  const initials = role === 'AdminSEBN' ? 'AD' : 'RC';
-  const avatarColor = role === 'AdminSEBN' ? '#2563eb' : '#059669';
-  const userName = role === 'AdminSEBN' ? 'Admin SEBN' : (authSiteId ?? 'Responsable');
-  const userRole = role;
+  const initials = isAdmin ? 'AD' : isPrestataire ? 'PR' : 'RC';
+  const avatarColor = isAdmin ? '#2563eb' : isPrestataire ? '#7c3aed' : '#059669';
+  const userName = isAdmin ? 'Admin SEBN' : isPrestataire ? 'Prestataire' : (authSiteId ?? 'Responsable');
 
   return (
     <div style={{
@@ -83,20 +87,34 @@ function Sidebar() {
           </NavLink>
         </div>
 
-        {isAdmin && (
+        {(isAdmin || isGestionnaire) && (
           <div className="sb-section">
-            <div className="sb-section-label">Administration</div>
-            <NavLink to="/admin/lecteurs" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
-              <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
-              Lecteurs
-            </NavLink>
+            <div className="sb-section-label">Gestion</div>
+            {isAdmin && (
+              <NavLink to="/admin/lecteurs" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+                <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+                Lecteurs
+              </NavLink>
+            )}
             <NavLink to="/admin/employes" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
               <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
               Employés
             </NavLink>
-            <NavLink to="/admin/sites" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
-              <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              Sites
+            {isAdmin && (
+              <NavLink to="/admin/sites" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+                <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Sites
+              </NavLink>
+            )}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="sb-section">
+            <div className="sb-section-label">Administration</div>
+            <NavLink to="/admin/comptes" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              Gestion des comptes
             </NavLink>
           </div>
         )}
@@ -108,7 +126,7 @@ function Sidebar() {
           <div className="sb-avatar" style={{ background: avatarColor }}>{initials}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="sb-uname">{userName}</div>
-            <div className="sb-urole">{userRole}</div>
+            <div className="sb-urole">{role ?? ''}</div>
           </div>
           <button className="sb-logout" onClick={logout} title="Déconnexion">
             <svg viewBox="0 0 24 24">
@@ -148,6 +166,14 @@ function AuthenticatedLayout() {
               element={
                 <PrivateRoute requiredRole="AdminSEBN">
                   <SitesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/comptes"
+              element={
+                <PrivateRoute allowed={['AdminSEBN']}>
+                  <GestionComptesPage />
                 </PrivateRoute>
               }
             />

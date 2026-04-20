@@ -27,6 +27,8 @@ builder.Services.AddScoped<IMealEligibilityService, MealEligibilityService>();
 builder.Services.AddScoped<IMorphoEmployeeImporter, MorphoEmployeeImporter>();
 builder.Services.AddScoped<IMorphoSyncService, MorphoSyncService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ExcelExportService>();
 builder.Services.AddSingleton<IEscPosService, EscPosService>();
 builder.Services.AddSingleton<IMorphoFrameParser, MorphoFrameParser>();
 

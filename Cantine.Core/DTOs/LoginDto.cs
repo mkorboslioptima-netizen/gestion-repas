@@ -12,4 +12,5 @@ public class LoginResultDto
     public string Nom { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string? SiteId { get; set; }
+    public string? Error { get; set; }
 }

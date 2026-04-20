@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(dotnet run *)",
+      "Bash(taskkill /F /IM dotnet.exe)",
+      "Bash(taskkill //F //IM dotnet.exe)",
+      "Bash(openspec list *)",
+      "Bash(openspec instructions *)",
+      "Bash(curl *)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(openspec status *)",
+      "Bash(mkdir -p \"F:/cantine_SEBN/gestion-repas/openspec/specs/user-auth\")",
+      "Bash(cp \"F:/cantine_SEBN/gestion-repas/openspec/changes/authentification-jwt/specs/user-auth/spec.md\" \"F:/cantine_SEBN/gestion-repas/openspec/specs/user-auth/spec.md\")",
+      "Bash(mkdir -p F:/cantine_SEBN/gestion-repas/openspec/changes/archive)",
+      "Bash(mv F:/cantine_SEBN/gestion-repas/openspec/changes/authentification-jwt F:/cantine_SEBN/gestion-repas/openspec/changes/archive/2026-04-20-authentification-jwt)"
+    ]
+  }
+}

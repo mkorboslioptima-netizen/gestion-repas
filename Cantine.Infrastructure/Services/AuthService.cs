@@ -30,7 +30,10 @@ public class AuthService : IAuthService
         if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return null;
 
-        var token = GenerateJwt(user.Email, user.Nom, user.Role, user.SiteId);
+        if (!user.IsActive)
+            return new LoginResultDto { Error = "Compte désactivé. Contactez l'administrateur." };
+
+        var token = GenerateJwt(user.Id, user.Email, user.Nom, user.Role, user.SiteId);
 
         return new LoginResultDto
         {
@@ -41,7 +44,7 @@ public class AuthService : IAuthService
         };
     }
 
-    private string GenerateJwt(string email, string nom, string role, string? siteId)
+    private string GenerateJwt(int id, string email, string nom, string role, string? siteId)
     {
         var secret = _config["Jwt:Secret"]
             ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
@@ -54,6 +57,7 @@ public class AuthService : IAuthService
             new(JwtRegisteredClaimNames.Name, nom),
             new(ClaimTypes.Role, role),               // pour [Authorize(Roles=...)]
             new("role", role),                         // pour le frontend (décodage base64)
+            new("uid", id.ToString()),                 // ID BDD pour les actions admin
         };
 
         if (siteId is not null)
