@@ -39,8 +39,8 @@
 
 ## 7. Vérification
 
-- [ ] 7.1 Vérifier que `POST /api/auth/login` retourne un JWT valide pour `admin@sebn.tn` / `Admin123!`
-- [ ] 7.2 Vérifier que `POST /api/auth/login` retourne 401 pour des credentials invalides
-- [ ] 7.3 Vérifier que les routes `/admin/employes` retournent 401 sans token et 403 pour `ResponsableCantine`
-- [ ] 7.4 Vérifier que la page Login se connecte et redirige vers le dashboard
-- [ ] 7.5 Vérifier que le nom et rôle s'affichent correctement dans la sidebar après connexion
+- [x] 7.1 Vérifier que `POST /api/auth/login` retourne un JWT valide pour `admin@sebn.tn` / `Admin123!`
+- [x] 7.2 Vérifier que `POST /api/auth/login` retourne 401 pour des credentials invalides
+- [x] 7.3 Vérifier que les routes `/admin/employes` retournent 401 sans token et 403 pour `ResponsableCantine`
+- [x] 7.4 Vérifier que la page Login se connecte et redirige vers le dashboard
+- [x] 7.5 Vérifier que le nom et rôle s'affichent correctement dans la sidebar après connexion
