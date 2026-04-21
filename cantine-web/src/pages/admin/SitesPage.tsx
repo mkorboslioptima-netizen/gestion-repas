@@ -58,7 +58,7 @@ function MorphoModal({ site, onClose }: { site: SiteDto; onClose: () => void }) 
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ siteId: site.siteId, connectionString: '', query: '', commandTimeout: 30 }}
+          initialValues={{ siteId: site.siteId, connectionString: '', commandTimeout: 30 }}
           onFinish={saveMutation.mutate}
         >
           <Form.Item
@@ -74,17 +74,7 @@ function MorphoModal({ site, onClose }: { site: SiteDto; onClose: () => void }) 
             />
           </Form.Item>
 
-          <Form.Item
-            label="Requête SQL"
-            name="query"
-            rules={[{ required: true, message: 'Obligatoire' }]}
-          >
-            <Input.TextArea
-              rows={3}
-              style={{ fontFamily: 'monospace', fontSize: 12 }}
-              placeholder="SELECT Matricule, Nom, Prenom FROM Employes WHERE Actif = 1"
-            />
-          </Form.Item>
+          {/* Requête SQL masquée — requête fixe côté backend */}
 
           <Form.Item
             label="Timeout (secondes)"

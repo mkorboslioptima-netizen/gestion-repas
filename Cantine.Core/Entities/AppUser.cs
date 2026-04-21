@@ -12,5 +12,7 @@ public class AppUser
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? CreatedBy { get; set; }
 
+    public DateTime? LastLoginAt { get; set; }
+
     public Site? Site { get; set; }
 }

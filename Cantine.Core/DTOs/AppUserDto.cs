@@ -8,7 +8,9 @@ public record AppUserDto(
     bool IsActive,
     DateTime CreatedAt,
     string? CreatedBy,
-    string? SiteId
+    string? SiteId,
+    string? SiteNom,
+    DateTime? LastLoginAt
 );
 
 public record CreateUserDto(
@@ -21,7 +23,8 @@ public record CreateUserDto(
 
 public record UpdateUserDto(
     string? Role,
-    bool? IsActive
+    bool? IsActive,
+    string? SiteId
 );
 
 public record AuditLogDto(

@@ -21,7 +21,7 @@ public class UserService : IUserService
         return await _context.AppUsers
             .AsNoTracking()
             .OrderBy(u => u.CreatedAt)
-            .Select(u => new AppUserDto(u.Id, u.Email, u.Nom, u.Role, u.IsActive, u.CreatedAt, u.CreatedBy, u.SiteId))
+            .Select(u => new AppUserDto(u.Id, u.Email, u.Nom, u.Role, u.IsActive, u.CreatedAt, u.CreatedBy, u.SiteId, u.Site != null ? u.Site.Nom : null, u.LastLoginAt))
             .ToListAsync();
     }
 
@@ -60,7 +60,7 @@ public class UserService : IUserService
         });
         await _context.SaveChangesAsync();
 
-        return new AppUserDto(user.Id, user.Email, user.Nom, user.Role, user.IsActive, user.CreatedAt, user.CreatedBy, user.SiteId);
+        return new AppUserDto(user.Id, user.Email, user.Nom, user.Role, user.IsActive, user.CreatedAt, user.CreatedBy, user.SiteId, null, null);
     }
 
     public async Task UpdateRoleOrStatusAsync(int userId, UpdateUserDto dto, int actorId)
@@ -70,7 +70,8 @@ public class UserService : IUserService
 
         var user = await _context.AppUsers.FirstAsync(u => u.Id == userId);
 
-        string action;
+        string? action = null;
+
         if (dto.Role is not null && dto.Role != user.Role)
         {
             if (!UserRole.All.Contains(dto.Role))
@@ -78,15 +79,24 @@ public class UserService : IUserService
             user.Role = dto.Role;
             action = "RoleChanged";
         }
-        else if (dto.IsActive.HasValue && dto.IsActive.Value != user.IsActive)
+
+        if (dto.IsActive.HasValue && dto.IsActive.Value != user.IsActive)
         {
             user.IsActive = dto.IsActive.Value;
             action = dto.IsActive.Value ? "Reactivated" : "Deactivated";
         }
-        else
+
+        if (dto.SiteId is not null)
         {
-            return;
+            var newSiteId = dto.SiteId == "" ? null : dto.SiteId;
+            if (newSiteId != user.SiteId)
+            {
+                user.SiteId = newSiteId;
+                action ??= "SiteChanged";
+            }
         }
+
+        if (action is null) return;
 
         _context.UserAuditLogs.Add(new UserAuditLog
         {

@@ -19,6 +19,8 @@ export interface AppUser {
   createdAt: string;
   createdBy: string | null;
   siteId: string | null;
+  siteNom: string | null;
+  lastLoginAt: string | null;
 }
 
 export interface AuditLog {
@@ -37,7 +39,7 @@ export const getAuditLog = () => api.get<AuditLog[]>('/api/auth/users/audit-log'
 export const createUser = (data: { email: string; password: string; nom: string; role: string; siteId?: string }) =>
   api.post<AppUser>('/api/auth/users', data).then(r => r.data);
 
-export const updateUser = (id: number, data: { role?: string; isActive?: boolean }) =>
+export const updateUser = (id: number, data: { role?: string; isActive?: boolean; siteId?: string }) =>
   api.put(`/api/auth/users/${id}`, data);
 
 export const resetPassword = (id: number, newPassword: string) =>

@@ -20,6 +20,24 @@
   --text3: #94a3b8;
 }
 
+/* ── Dark mode ──────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --primary-light: #1e3a5f;
+  --success-light: #14532d;
+  --warn-light: #451a03;
+  --danger-light: #450a0a;
+  --purple-light: #2e1065;
+  --sidebar: #0f172a;
+  --sidebar-text: #94a3b8;
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text1: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: #475569;
+}
+
 /* ── Reset de base ─────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -215,6 +233,32 @@ body {
 .app-header-date {
   font-size: 11px;
   color: var(--text2);
+}
+
+.app-header-theme-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  transition: background .12s, color .12s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.app-header-theme-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.app-header-theme-btn svg {
+  width: 15px;
+  height: 15px;
 }
 
 /* ── KPI Card ─────────────────────────────────────────────────────────── */

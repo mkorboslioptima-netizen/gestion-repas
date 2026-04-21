@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button, DatePicker, Select, Space, TimePicker } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { getSites } from '../api/sites';
+import { getEmployes } from '../api/employes';
 import { useRole } from '../auth/useRole';
 
 export interface FiltreState {
@@ -12,6 +13,7 @@ export interface FiltreState {
   heureFin: string;
   repasType?: 'PlatChaud' | 'Sandwich';
   siteId?: string;
+  matricule?: string;
 }
 
 interface Props {
@@ -30,6 +32,7 @@ export default function DashboardFilters({ onApply }: Props) {
   const [heureFin, setHeureFin]     = useState<Dayjs>(dayjs('23:59', FMT_TIME));
   const [repasType, setRepasType]   = useState<'PlatChaud' | 'Sandwich' | undefined>(undefined);
   const [siteId, setSiteId]         = useState<string | undefined>(undefined);
+  const [matricule, setMatricule]   = useState<string | undefined>(undefined);
 
   const { data: sites = [] } = useQuery({
     queryKey: ['sites'],
@@ -37,16 +40,59 @@ export default function DashboardFilters({ onApply }: Props) {
     enabled: role === 'AdminSEBN',
   });
 
-  function handleApply() {
-    onApply({
+  // Charge les employés du site sélectionné (ou tous si admin sans filtre site)
+  const { data: employes = [] } = useQuery({
+    queryKey: ['employes-filtre', siteId],
+    queryFn: () => getEmployes(siteId ?? ''),
+    enabled: !!siteId || role !== 'AdminSEBN',
+  });
+
+  // Pour admin sans site sélectionné : charge tous les sites et fusionne
+  const { data: allSites = [] } = useQuery({
+    queryKey: ['sites'],
+    queryFn: getSites,
+    enabled: role === 'AdminSEBN' && !siteId,
+  });
+
+  const { data: employesSite1 = [] } = useQuery({
+    queryKey: ['employes-filtre', allSites[0]?.siteId],
+    queryFn: () => getEmployes(allSites[0]?.siteId ?? ''),
+    enabled: role === 'AdminSEBN' && !siteId && allSites.length > 0,
+  });
+
+  const { data: employesSite2 = [] } = useQuery({
+    queryKey: ['employes-filtre', allSites[1]?.siteId],
+    queryFn: () => getEmployes(allSites[1]?.siteId ?? ''),
+    enabled: role === 'AdminSEBN' && !siteId && allSites.length > 1,
+  });
+
+  const tousEmployes = useMemo(() => {
+    if (siteId) return employes;
+    return [...employesSite1, ...employesSite2];
+  }, [siteId, employes, employesSite1, employesSite2]);
+
+  const matriculeOptions = useMemo(() => [
+    { value: '', label: 'Tous les employés' },
+    ...tousEmployes.map(e => ({
+      value: e.matricule,
+      label: `${e.matricule} — ${e.nom} ${e.prenom}`,
+    })),
+  ], [tousEmployes]);
+
+  function buildState(overrides: Partial<FiltreState> = {}): FiltreState {
+    return {
       dateDebut: dates[0].format(FMT_DATE),
       dateFin:   dates[1].format(FMT_DATE),
       heureDebut: heureDebut.format(FMT_TIME),
       heureFin:   heureFin.format(FMT_TIME),
       repasType,
       siteId,
-    });
+      matricule: matricule || undefined,
+      ...overrides,
+    };
   }
+
+  function handleApply() { onApply(buildState()); }
 
   function handleReset() {
     const now = dayjs();
@@ -55,7 +101,8 @@ export default function DashboardFilters({ onApply }: Props) {
     setHeureFin(dayjs('23:59', FMT_TIME));
     setRepasType(undefined);
     setSiteId(undefined);
-    onApply({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59', repasType: undefined, siteId: undefined });
+    setMatricule(undefined);
+    onApply({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59', repasType: undefined, siteId: undefined, matricule: undefined });
   }
 
   return (
@@ -101,14 +148,7 @@ export default function DashboardFilters({ onApply }: Props) {
         onChange={(v) => {
           const val = v === '' ? undefined : v as 'PlatChaud' | 'Sandwich';
           setRepasType(val);
-          onApply({
-            dateDebut: dates[0].format(FMT_DATE),
-            dateFin: dates[1].format(FMT_DATE),
-            heureDebut: heureDebut.format(FMT_TIME),
-            heureFin: heureFin.format(FMT_TIME),
-            repasType: val,
-            siteId,
-          });
+          onApply(buildState({ repasType: val }));
         }}
         options={[
           { value: '', label: 'Tous les repas' },
@@ -125,14 +165,7 @@ export default function DashboardFilters({ onApply }: Props) {
           onChange={(v) => {
             const val = v === '' ? undefined : v;
             setSiteId(val);
-            onApply({
-              dateDebut: dates[0].format(FMT_DATE),
-              dateFin: dates[1].format(FMT_DATE),
-              heureDebut: heureDebut.format(FMT_TIME),
-              heureFin: heureFin.format(FMT_TIME),
-              repasType,
-              siteId: val,
-            });
+            onApply(buildState({ siteId: val }));
           }}
           options={[
             { value: '', label: 'Tous les sites' },
@@ -141,12 +174,31 @@ export default function DashboardFilters({ onApply }: Props) {
         />
       )}
 
+      <Select
+        size="small"
+        style={{ width: 200 }}
+        showSearch
+        allowClear
+        placeholder="Employé / Matricule"
+        value={matricule ?? ''}
+        onChange={(v) => {
+          const val = v === '' ? undefined : v;
+          setMatricule(val);
+          onApply(buildState({ matricule: val }));
+        }}
+        onClear={() => { setMatricule(undefined); onApply(buildState({ matricule: undefined })); }}
+        filterOption={(input, option) =>
+          (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+        }
+        options={matriculeOptions}
+      />
+
       <Button size="small" onClick={() => {
         const now = dayjs();
         setDates([now, now]);
         setHeureDebut(dayjs('00:00', FMT_TIME));
         setHeureFin(dayjs('23:59', FMT_TIME));
-        onApply({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59', repasType, siteId });
+        onApply(buildState({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59' }));
       }}>
         Aujourd'hui
       </Button>

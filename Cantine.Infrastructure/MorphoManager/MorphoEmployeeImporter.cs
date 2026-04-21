@@ -10,6 +10,7 @@ namespace Cantine.Infrastructure.MorphoManager;
 
 public class MorphoEmployeeImporter : IMorphoEmployeeImporter
 {
+    private const string MorphoQuery = "SELECT EMPLOYEEID, FIRSTNAME, LASTNAME FROM User_";
     private readonly CantineDbContext _context;
     private readonly ILogger<MorphoEmployeeImporter> _logger;
 
@@ -33,7 +34,7 @@ public class MorphoEmployeeImporter : IMorphoEmployeeImporter
         await using var connection = new SqlConnection(config.ConnectionString);
         await connection.OpenAsync();
 
-        await using var command = new SqlCommand(config.Query, connection)
+        await using var command = new SqlCommand(MorphoQuery, connection)
         {
             CommandTimeout = config.CommandTimeout
         };
@@ -43,9 +44,9 @@ public class MorphoEmployeeImporter : IMorphoEmployeeImporter
         var rows = new List<(string Matricule, string Nom, string Prenom)>();
         while (await reader.ReadAsync())
         {
-            var matricule = reader["Matricule"]?.ToString()?.Trim();
-            var nom = reader["Nom"]?.ToString()?.Trim();
-            var prenom = reader["Prenom"]?.ToString()?.Trim();
+            var matricule = reader["EMPLOYEEID"]?.ToString()?.Trim();
+            var nom       = reader["LASTNAME"]?.ToString()?.Trim();
+            var prenom    = reader["FIRSTNAME"]?.ToString()?.Trim();
 
             if (string.IsNullOrEmpty(matricule)) continue;
             rows.Add((matricule, nom ?? string.Empty, prenom ?? string.Empty));

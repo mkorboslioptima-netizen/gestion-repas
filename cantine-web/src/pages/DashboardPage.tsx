@@ -3,7 +3,7 @@ import { Col, Row, Button, message } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, LabelList,
+  PieChart, Pie, Cell, Legend, LabelList, Label,
 } from 'recharts';
 import dayjs from 'dayjs';
 import {
@@ -211,9 +211,12 @@ export default function DashboardPage() {
   const trendSandwich  = calcTrend(totalSandwich, hierSandwich);
   const trendQuota     = calcTrend(totalQuota, hierQuota);
 
-  const filteredFeed = useMemo(() =>
-    filtre.repasType ? feedPassages.filter(p => p.repasType === filtre.repasType) : feedPassages,
-  [feedPassages, filtre.repasType]);
+  const filteredFeed = useMemo(() => {
+    let result = feedPassages;
+    if (filtre.repasType) result = result.filter(p => p.repasType === filtre.repasType);
+    if (filtre.matricule) result = result.filter(p => p.matricule.toLowerCase().includes(filtre.matricule!.toLowerCase()));
+    return result;
+  }, [feedPassages, filtre.repasType, filtre.matricule]);
 
   const chartData = useMemo(() => buildChartData(filteredFeed, chartMode, filtre.dateDebut, filtre.dateFin),
     [filteredFeed, chartMode, filtre.dateDebut, filtre.dateFin]);
@@ -268,31 +271,74 @@ export default function DashboardPage() {
         );
       })()}
 
-      {/* Graphiques */}
-      <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
-        <Col xs={24} md={8}>
-          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+      {/* Graphiques — carte unique divisée */}
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 2fr', gap: 0 }}>
+
+          {/* ── Gauche : Répartition plats (Pie donut) ── */}
+          <div style={{ paddingRight: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--text1)' }}>
               Répartition plats
               <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400, marginLeft: 6 }}>
                 {filtre.dateDebut === filtre.dateFin ? filtre.dateDebut : `${filtre.dateDebut} → ${filtre.dateFin}`}
               </span>
             </div>
-            <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value">
+            <ResponsiveContainer width="100%" height={230}>
+              <PieChart margin={{ top: 24, right: 40, bottom: 24, left: 40 }}>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={46}
+                  outerRadius={68}
+                  dataKey="value"
+                  labelLine={false}
+                  label={false}
+                >
                   {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+                  <Label content={({ viewBox }) => {
+                    const { cx, cy } = viewBox as { cx: number; cy: number };
+                    return (
+                      <g>
+                        <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 20, fontWeight: 800, fill: '#0f172a' }}>
+                          {totalPassages.toLocaleString('fr')}
+                        </text>
+                        <text x={cx} y={cy + 12} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 10, fill: '#64748b' }}>
+                          repas
+                        </text>
+                      </g>
+                    );
+                  }} />
                 </Pie>
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            {/* Légende manuelle avec détails */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              {[
+                { label: 'Plats chauds', value: totalPlatChaud, color: '#2563eb', bg: '#eff6ff' },
+                { label: 'Sandwich',     value: totalSandwich,  color: '#7c3aed', bg: '#fdf4ff' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: item.bg, borderRadius: 8, padding: '6px 10px' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: 'var(--text2)', flex: 1 }}>{item.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: item.color }}>{item.value.toLocaleString('fr')}</span>
+                  {totalPassages > 0 && (
+                    <span style={{ fontSize: 11, color: 'var(--text2)' }}>
+                      ({Math.round(item.value / totalPassages * 100)}%)
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </Col>
 
-        <Col xs={24} md={16}>
-          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+          {/* Séparateur vertical */}
+          <div style={{ background: 'var(--border)' }} />
+
+          {/* ── Droite : Passages par heure/jour/mois + Repas par site ── */}
+          <div style={{ paddingLeft: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--text1)' }}>
               {chartMode === 'heure' ? 'Passages par heure' : chartMode === 'jour' ? 'Passages par jour' : 'Passages par mois'}
               <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400, marginLeft: 6 }}>
                 {filtre.dateDebut === filtre.dateFin ? filtre.dateDebut : `${filtre.dateDebut} → ${filtre.dateFin}`}
@@ -309,40 +355,48 @@ export default function DashboardPage() {
                 <Bar dataKey="sandwich"  name="Sandwich"   stackId="a" fill="#7c3aed" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </Col>
-      </Row>
 
-      {/* Histogramme Repas par site — AdminSEBN uniquement */}
-      <RoleGate allowed={['AdminSEBN']}>
-        <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
-          <Col xs={24}>
-            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
-                Repas par site
-                <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 400, marginLeft: 6 }}>
-                  {filtre.dateDebut === filtre.dateFin ? filtre.dateDebut : `${filtre.dateDebut} → ${filtre.dateFin}`}
-                </span>
+            {/* Repas par site (divider + bar horizontal) */}
+            <RoleGate allowed={['AdminSEBN']}>
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: 14, paddingTop: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--text1)' }}>
+                  Repas par site
+                </div>
+                <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                  {/* Noms des sites en HTML — alignés en haut de chaque barre */}
+                  <div style={{ width: 148, flexShrink: 0, display: 'flex', flexDirection: 'column', paddingBottom: 30 }}>
+                    {siteData.map(s => (
+                      <div key={s.site} style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 2, paddingRight: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#0f172a', lineHeight: 1.2, textAlign: 'right' }}>
+                          {s.site}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* BarChart sans YAxis */}
+                  <div style={{ flex: 1 }}>
+                    <ResponsiveContainer width="100%" height={Math.max(100, siteData.length * 44 + 40)}>
+                      <BarChart data={siteData} layout="vertical" margin={{ top: 8, right: 48, left: 0, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
+                        <YAxis type="category" dataKey="site" width={0} tick={false} axisLine={false} tickLine={false} />
+                        <Tooltip />
+                        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                        <Bar dataKey="platChaud" name="Plat chaud" fill="#2563eb" radius={[0, 3, 3, 0]}>
+                          <LabelList dataKey="platChaud" position="right" style={{ fontSize: 10, fill: '#2563eb', fontWeight: 600 }} />
+                        </Bar>
+                        <Bar dataKey="sandwich" name="Sandwich" fill="#7c3aed" radius={[0, 3, 3, 0]}>
+                          <LabelList dataKey="sandwich" position="right" style={{ fontSize: 10, fill: '#7c3aed', fontWeight: 600 }} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
-              <ResponsiveContainer width="100%" height={Math.max(180, siteData.length * 80 + 60)}>
-                <BarChart data={siteData} layout="vertical" margin={{ top: 16, right: 32, left: 8, bottom: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="site" tick={{ fontSize: 11 }} width={120} />
-                  <Tooltip />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="platChaud" name="Plat chaud" fill="#2563eb" radius={[0, 3, 3, 0]}>
-                    <LabelList dataKey="platChaud" position="right" style={{ fontSize: 10, fill: '#2563eb' }} />
-                  </Bar>
-                  <Bar dataKey="sandwich" name="Sandwich" fill="#7c3aed" radius={[0, 3, 3, 0]}>
-                    <LabelList dataKey="sandwich" position="right" style={{ fontSize: 10, fill: '#7c3aed' }} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Col>
-        </Row>
-      </RoleGate>
+            </RoleGate>
+          </div>
+        </div>
+      </div>
 
       {/* Feed */}
       <div className="feed-card">

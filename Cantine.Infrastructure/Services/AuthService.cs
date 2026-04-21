@@ -24,7 +24,6 @@ public class AuthService : IAuthService
     public async Task<LoginResultDto?> LoginAsync(LoginDto dto)
     {
         var user = await _context.AppUsers
-            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
@@ -32,6 +31,9 @@ public class AuthService : IAuthService
 
         if (!user.IsActive)
             return new LoginResultDto { Error = "Compte désactivé. Contactez l'administrateur." };
+
+        user.LastLoginAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
 
         var token = GenerateJwt(user.Id, user.Email, user.Nom, user.Role, user.SiteId);
 

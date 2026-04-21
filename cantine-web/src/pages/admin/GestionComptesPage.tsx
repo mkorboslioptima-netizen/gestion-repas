@@ -4,6 +4,7 @@ import {
   getUsers, getAuditLog, createUser, updateUser, resetPassword,
   type AppUser, type AuditLog,
 } from '../../api/users';
+import { getSites } from '../../api/sites';
 import { Table, Button, Modal, Form, Input, Select, Switch, Tag, Tabs, message, Popconfirm } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -29,6 +30,12 @@ export default function GestionComptesPage() {
 
   const { data: users = [], isLoading } = useQuery({ queryKey: ['users'], queryFn: getUsers });
   const { data: logs = [] } = useQuery({ queryKey: ['audit-log'], queryFn: getAuditLog });
+  const { data: sites = [] } = useQuery({ queryKey: ['sites'], queryFn: getSites });
+
+  const siteOptions = [
+    { value: '', label: 'Tous les sites' },
+    ...sites.filter(s => s.actif).map(s => ({ value: s.siteId, label: s.nom })),
+  ];
 
   const createMut = useMutation({
     mutationFn: createUser,
@@ -43,7 +50,7 @@ export default function GestionComptesPage() {
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { role?: string; isActive?: boolean } }) =>
+    mutationFn: ({ id, data }: { id: number; data: { role?: string; isActive?: boolean; siteId?: string } }) =>
       updateUser(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] });
@@ -90,6 +97,20 @@ export default function GestionComptesPage() {
       ),
     },
     {
+      title: 'Site',
+      dataIndex: 'siteId',
+      key: 'siteId',
+      render: (_: string | null, record) => (
+        <Select
+          size="small"
+          value={record.siteId ?? ''}
+          options={siteOptions}
+          style={{ minWidth: 150 }}
+          onChange={val => updateMut.mutate({ id: record.id, data: { siteId: val } })}
+        />
+      ),
+    },
+    {
       title: 'Statut',
       dataIndex: 'isActive',
       key: 'isActive',
@@ -103,6 +124,12 @@ export default function GestionComptesPage() {
           <Switch checked={active} size="small" />
         </Popconfirm>
       ),
+    },
+    {
+      title: 'Dernière connexion',
+      dataIndex: 'lastLoginAt',
+      key: 'lastLoginAt',
+      render: (v: string | null) => v ? dayjs(v).format('DD/MM/YYYY HH:mm') : '—',
     },
     {
       title: 'Créé le',
@@ -220,6 +247,9 @@ export default function GestionComptesPage() {
           </Form.Item>
           <Form.Item name="role" label="Rôle" rules={[{ required: true }]}>
             <Select options={ROLES} />
+          </Form.Item>
+          <Form.Item name="siteId" label="Site">
+            <Select options={siteOptions} allowClear placeholder="Tous les sites" />
           </Form.Item>
         </Form>
       </Modal>

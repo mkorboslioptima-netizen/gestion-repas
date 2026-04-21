@@ -56,7 +56,7 @@ public class ExcelExportService
         int row = 8;
 
         // ── En-têtes tableau ─────────────────────────────────────────────────
-        string[] headers = ["Site", "Repas servis", "Plats chauds", "Sandwichs", "Quota atteint"];
+        string[] headers = ["Site", "Repas servis", "Plats chauds", "Sandwichs"];
         for (int i = 0; i < headers.Length; i++)
         {
             var cell = ws.Cell(row, i + 1);
@@ -66,7 +66,7 @@ public class ExcelExportService
             cell.Style.Font.FontColor = XLColor.White;
         }
         row++;
-        int totalPassages = 0, totalPlat = 0, totalSandwich = 0, totalQuota = 0;
+        int totalPassages = 0, totalPlat = 0, totalSandwich = 0;
 
         foreach (var site in sites)
         {
@@ -80,17 +80,6 @@ public class ExcelExportService
                 .Where(m => repasType == null || m.RepasType.ToString() == repasType)
                 .ToList();
 
-            var matricules = filtered.Select(l => l.Matricule).Distinct();
-            int quota = 0;
-            foreach (var matricule in matricules)
-            {
-                var employee = await _context.Employees
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(e => e.SiteId == site.SiteId && e.Matricule == matricule);
-                if (employee is not null && filtered.Count(l => l.Matricule == matricule) >= employee.MaxMealsPerDay)
-                    quota++;
-            }
-
             int platChaud = filtered.Count(l => l.RepasType == RepasType.PlatChaud);
             int sandwich  = filtered.Count(l => l.RepasType == RepasType.Sandwich);
 
@@ -98,12 +87,10 @@ public class ExcelExportService
             ws.Cell(row, 2).Value = filtered.Count;
             ws.Cell(row, 3).Value = platChaud;
             ws.Cell(row, 4).Value = sandwich;
-            ws.Cell(row, 5).Value = quota;
 
             totalPassages += filtered.Count;
             totalPlat     += platChaud;
             totalSandwich += sandwich;
-            totalQuota    += quota;
             row++;
         }
 
@@ -115,7 +102,6 @@ public class ExcelExportService
         ws.Cell(row, 2).Value = totalPassages;
         ws.Cell(row, 3).Value = totalPlat;
         ws.Cell(row, 4).Value = totalSandwich;
-        ws.Cell(row, 5).Value = totalQuota;
 
         ws.Columns().AdjustToContents();
 

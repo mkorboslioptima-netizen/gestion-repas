@@ -3,7 +3,7 @@ import {
   Button, Card, Col, Divider, Row, Select, Space,
   Statistic, Table, Tag, Typography, notification,
 } from 'antd';
-import { ImportOutlined, SyncOutlined, TeamOutlined } from '@ant-design/icons';
+import { ImportOutlined, TeamOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -13,7 +13,6 @@ import {
   getEmployeStats,
   getEmployes,
   importDepuisMorpho,
-  syncMorpho,
   type EmployeeDto,
   type EmployeeSiteStatsDto,
 } from '../../api/employes';
@@ -89,13 +88,13 @@ const COLONNES = [
 // ─── Page principale ────────────────────────────────────────────────────────
 
 export default function EmployesPage() {
-  const { roles } = useAuth();
+  const { roles, siteId: authSiteId } = useAuth();
   const { siteId, setSiteId } = useSite();
   const queryClient = useQueryClient();
   const isAdmin = roles.includes('AdminSEBN');
+  const isGestionnaire = roles.includes('ResponsableCantine');
 
   const [loadingImport, setLoadingImport] = useState(false);
-  const [loadingSync, setLoadingSync] = useState(false);
 
   const { data: sites = [] } = useQuery({
     queryKey: ['sites'],
@@ -103,10 +102,15 @@ export default function EmployesPage() {
     enabled: isAdmin,
   });
 
-  const { data: stats = [], isLoading: statsLoading } = useQuery({
+  const { data: allStats = [], isLoading: statsLoading } = useQuery({
     queryKey: ['employe-stats'],
     queryFn: getEmployeStats,
   });
+
+  // Gestionnaire ne voit que les stats de son propre site
+  const stats = isGestionnaire && authSiteId
+    ? allStats.filter(s => s.siteId === authSiteId)
+    : allStats;
 
   // Site actif pour le tableau : siteId du contexte, ou premier site disponible
   const tableSiteId = siteId ?? (sites.length > 0 ? sites[0].siteId : null);
@@ -146,27 +150,6 @@ export default function EmployesPage() {
     }
   };
 
-  const handleSync = async () => {
-    setLoadingSync(true);
-    try {
-      await syncMorpho();
-      notification.info({
-        message: 'Synchronisation lancée',
-        description: 'La synchronisation de tous les sites configurés est en cours en arrière-plan.',
-        duration: 6,
-      });
-      // Rafraîchir après un délai pour laisser la synchro démarrer
-      setTimeout(invalidateStats, 3000);
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? 'Erreur lors du déclenchement de la synchronisation.';
-      notification.error({ message: 'Échec', description: msg, duration: 0 });
-    } finally {
-      setLoadingSync(false);
-    }
-  };
-
   return (
     <div style={{ padding: 18 }}>
       {/* ── Section statistiques par site ── */}
@@ -181,8 +164,8 @@ export default function EmployesPage() {
           ))}
       </Row>
 
-      {/* ── Section import / synchro ── */}
-      <div className="admin-card" style={{ maxWidth: 560, marginBottom: 24, padding: 20 }}>
+      {/* ── Section import / synchro — masquée pour les gestionnaires ── */}
+      {isAdmin && <div className="admin-card" style={{ maxWidth: 560, marginBottom: 24, padding: 20 }}>
         <Title level={5} style={{ marginBottom: 8 }}>Import depuis MorphoManager</Title>
         <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
           Importe ou met à jour les employés d'un site spécifique. Opération idempotente — sans doublons ni désactivation.
@@ -221,22 +204,8 @@ export default function EmployesPage() {
           </Button>
         </Space>
 
-        <Divider />
-
-        <Title level={5} style={{ marginBottom: 8 }}>Synchronisation tous les sites</Title>
-        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-          Lance la synchronisation complète de tous les sites configurés. Les employés absents de MorphoManager seront désactivés. La synchronisation automatique s'exécute aussi toutes les 6 heures.
-        </Text>
-
-        <Button
-          icon={<SyncOutlined />}
-          loading={loadingSync}
-          onClick={handleSync}
-          size="large"
-        >
-          Synchroniser maintenant
-        </Button>
-      </div>
+        {/* Synchronisation tous les sites — masquée temporairement */}
+      </div>}
 
       {/* ── Tableau des employés ── */}
       <Title level={5} style={{ marginBottom: 12 }}>
