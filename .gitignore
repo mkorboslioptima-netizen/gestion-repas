@@ -43,3 +43,8 @@ Thumbs.db
 # Claude Code — inclure les fichiers de config (.claude/ est suivi par git)
 # Exclure uniquement les fichiers potentiellement sensibles dans .claude/
 .claude/settings.local.json
+
+# Secrets de production (deploy/) — ne jamais committer
+deploy/appsettings.Production.json
+deploy/appsettings.TcpListener.Production.json
+deploy/out/

@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Cantine SEBN — Prototype</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+/* ── CSS Variables (globals.css exact copy) ── */
+:root {
+  --primary:#2563eb; --primary-light:#eff6ff;
+  --success:#16a34a; --success-light:#f0fdf4;
+  --warn:#d97706;    --warn-light:#fffbeb;
+  --danger:#dc2626;  --danger-light:#fef2f2;
+  --purple:#7c3aed;  --purple-light:#fdf4ff;
+  --sidebar:#1e293b; --sidebar-text:#cbd5e1;
+  --bg:#f8fafc; --card:#ffffff;
+  --border:#e2e8f0;
+  --text:#0f172a; --text1:#0f172a; --text2:#64748b; --text3:#94a3b8;
+}
+[data-theme="dark"] {
+  --primary-light:#1e3a5f; --success-light:#14532d;
+  --warn-light:#451a03;   --danger-light:#450a0a; --purple-light:#2e1065;
+  --sidebar:#0f172a; --sidebar-text:#94a3b8;
+  --bg:#0f172a; --card:#1e293b; --border:#334155;
+  --text:#f1f5f9; --text1:#f1f5f9; --text2:#94a3b8; --text3:#475569;
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;margin:0;
+  display:flex;height:100vh;overflow:hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;height:100vh;flex-shrink:0;}
+.sb-brand{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand-icon{width:30px;height:30px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0;}
+.sb-brand-name{font-size:13px;font-weight:600;color:#f1f5f9;line-height:1.2;}
+.sb-brand-sub{font-size:10px;color:var(--text3);}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto;}
+.sb-section{margin-bottom:18px;}
+.sb-section-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;padding:0 8px;margin-bottom:4px;text-transform:uppercase;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:var(--sidebar-text);font-size:13px;cursor:pointer;margin-bottom:1px;text-decoration:none;user-select:none;transition:background .12s;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:var(--sidebar-text);}
+.sb-item.active{background:rgba(37,99,235,.28);color:#93c5fd;}
+.sb-item svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;flex-shrink:0;}
+.sb-footer{padding:12px;border-top:1px solid rgba(255,255,255,.08);}
+.sb-user{display:flex;align-items:center;gap:9px;}
+.sb-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.sb-uname{font-size:12px;font-weight:500;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-urole{font-size:10px;color:var(--text3);}
+.sb-logout{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;margin-left:auto;display:flex;align-items:center;}
+.sb-logout:hover{color:#f87171;}
+.sb-logout svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;}
+
+/* ── Main ── */
+.main-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.app-header{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;}
+.app-header-title{font-size:15px;font-weight:600;flex:1;color:var(--text);}
+.app-header-site{font-size:11px;padding:4px 10px;background:var(--primary-light);color:var(--primary);border-radius:20px;font-weight:500;}
+.app-header-date{font-size:11px;color:var(--text2);}
+.app-header-theme-btn{background:none;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);transition:background .12s,color .12s;padding:0;flex-shrink:0;}
+.app-header-theme-btn:hover{background:var(--border);color:var(--text);}
+.app-header-theme-btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;}
+
+/* ── Pages ── */
+.page{display:none;flex:1;overflow-y:auto;background:var(--bg);}
+.page.active{display:block;}
+
+/* ── Filtres bar ── */
+.filters-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:16px;}
+.filters-label{font-size:12px;font-weight:600;color:var(--text2);margin-right:4px;}
+.f-input{padding:4px 9px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card);color:var(--text);outline:none;height:28px;font-family:inherit;}
+.f-input:focus{border-color:var(--primary);}
+.f-select{padding:0 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card);color:var(--text);outline:none;height:28px;cursor:pointer;font-family:inherit;}
+.f-arrow{color:var(--text2);font-size:12px;}
+
+/* ── Buttons ── */
+.btn{padding:4px 12px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text2);height:28px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit;transition:background .12s;}
+.btn:hover{background:var(--bg);}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.btn-primary:hover{background:#1d4ed8;}
+.btn-ghost{border-color:var(--primary);color:var(--primary);background:var(--card);}
+.btn-ghost:hover{background:var(--primary-light);}
+.btn-danger{border-color:var(--danger);color:var(--danger);background:var(--card);}
+.btn-danger:hover{background:var(--danger-light);}
+.btn-purple{border-color:var(--purple);color:var(--purple);background:var(--card);}
+.btn-purple:hover{background:var(--purple-light);}
+.btn-sm{font-size:11px;padding:2px 8px;height:24px;}
+
+/* ── KPI Cards ── */
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.kpi-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.kpi-card-label{font-size:11px;color:var(--text2);font-weight:500;}
+.kpi-card-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.kpi-card-icon svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;}
+.kpi-card-value{font-size:26px;font-weight:700;line-height:1;color:var(--text);}
+.kpi-trend{font-size:11px;font-weight:600;margin-top:3px;}
+.kpi-trend.up{color:#16a34a;} .kpi-trend.down{color:#dc2626;}
+.kpi-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;}
+.kpi-bar-fill{height:100%;border-radius:2px;}
+
+/* ── Feed ── */
+.feed-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.feed-hdr{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.feed-title{font-size:13px;font-weight:600;color:var(--text);}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--success);}
+.pulse{width:7px;height:7px;background:var(--success);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+/* ── Tables ── */
+.app-table{width:100%;border-collapse:collapse;}
+.app-table th{padding:9px 14px;font-size:11px;font-weight:600;color:var(--text2);text-align:left;background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.04em;white-space:nowrap;}
+.app-table td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border);color:var(--text);}
+.app-table tr:last-child td{border-bottom:none;}
+.app-table tr:hover td{background:var(--bg);}
+
+/* ── Badges ── */
+.badge-repas{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+.badge-plat{background:#eff6ff;color:#2563eb;}
+.badge-sandwich{background:#fdf4ff;color:#7c3aed;}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500;}
+.tag-green{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;}
+.tag-default{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
+.tag-blue{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
+.tag-purple{background:#fdf4ff;color:#7c3aed;border:1px solid #e9d5ff;}
+.tag-orange{background:#fffbeb;color:#d97706;border:1px solid #fde68a;}
+.tag-red{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+.tag-cyan{background:#ecfeff;color:#0891b2;border:1px solid #a5f3fc;}
+
+/* ── Summary stat ── */
+.summary-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;text-align:center;min-width:100px;}
+.summary-stat .sv{font-size:24px;font-weight:700;line-height:1;}
+.summary-stat .sl{font-size:11px;color:var(--text2);margin-top:4px;}
+
+/* ── Admin card ── */
+.admin-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.admin-hdr{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--card);}
+.admin-hdr-title{font-size:14px;font-weight:600;color:var(--text);}
+
+/* ── Site card ── */
+.site-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;}
+.site-card-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.site-card-name{font-weight:700;font-size:15px;color:var(--text1);line-height:1.3;}
+.site-card-id{font-size:11px;color:var(--text2);margin-top:2px;font-family:monospace;}
+.site-card-metric{display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:8px;padding:6px 10px;}
+.site-card-metric svg{width:14px;height:14px;fill:none;stroke:#2563eb;stroke-width:2;flex-shrink:0;}
+.site-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+
+/* ── Charts ── */
+.charts-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:18px;}
+.charts-inner{display:grid;grid-template-columns:1fr 1px 2fr;gap:0;}
+.chart-sep{background:var(--border);}
+.chart-left{padding-right:20px;}
+.chart-right{padding-left:20px;}
+.chart-section-title{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text1);}
+.chart-section-sub{font-size:11px;color:var(--text2);font-weight:400;margin-left:6px;}
+.pie-legend{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.pie-legend-item{display:flex;align-items:center;gap:8px;border-radius:8px;padding:6px 10px;}
+.pie-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.pie-legend-label{font-size:12px;color:var(--text2);flex:1;}
+.pie-legend-value{font-size:14px;font-weight:700;}
+.pie-legend-pct{font-size:11px;color:var(--text2);}
+.site-divider{border-top:1px solid var(--border);margin-top:14px;padding-top:14px;}
+.site-row{display:flex;align-items:stretch;}
+.site-labels{width:56px;flex-shrink:0;display:flex;flex-direction:column;padding-bottom:30px;}
+.site-label-item{flex:1;display:flex;align-items:flex-start;justify-content:flex-end;padding-top:2px;padding-right:8px;font-size:11px;font-weight:600;color:var(--text1);text-align:right;line-height:1.2;}
+
+/* ── Tabs ── */
+.tabs-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;gap:0;}
+.tab-item{padding:10px 20px;font-size:14px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;margin-bottom:-1px;}
+.tab-item:hover{color:var(--primary);}
+.tab-item.active{color:var(--primary);border-bottom-color:var(--primary);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── Ant-style input / select ── */
+.form-group{margin-bottom:16px;}
+.form-label{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px;display:block;}
+.form-input{width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--card);color:var(--text);outline:none;font-family:inherit;}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(37,99,235,.1);}
+.form-select{width:100%;padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:var(--card);color:var(--text);outline:none;font-family:inherit;height:36px;}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border-radius:12px;padding:24px;width:440px;max-width:96vw;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.modal-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:16px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+.modal .btn{height:32px;padding:0 16px;}
+
+/* ── Switch ── */
+.switch{position:relative;display:inline-block;width:36px;height:20px;}
+.switch input{opacity:0;width:0;height:0;}
+.switch-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:20px;transition:.3s;}
+.switch-slider::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;left:3px;top:3px;transition:.3s;}
+.switch input:checked + .switch-slider{background:var(--primary);}
+.switch input:checked + .switch-slider::before{transform:translateX(16px);}
+
+/* ── Misc ── */
+.page-pad{padding:18px;}
+.row-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.row-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.flex-between{display:flex;align-items:center;justify-content:space-between;}
+.text-secondary{font-size:12px;color:var(--text2);margin-top:2px;}
+.section-label{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2);}
+.import-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:560px;margin-bottom:24px;}
+.import-title{font-size:15px;font-weight:600;color:var(--text);margin:0 0 6px;}
+.import-desc{font-size:12px;color:var(--text2);margin-bottom:16px;}
+.ant-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
+.stat-pair{display:flex;justify-content:space-between;align-items:flex-start;}
+.stat-value{font-size:22px;font-weight:700;line-height:1;}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-brand-icon">M</div>
+    <div>
+      <div class="sb-brand-name">Cantine SEBN</div>
+      <div class="sb-brand-sub">v1.0 • 3 sites</div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="sb-section">
+      <div class="sb-section-label">Principal</div>
+      <a class="sb-item active" href="#" data-page="dashboard" data-title="Tableau de bord">
+        <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+        Tableau de bord
+      </a>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label">Gestion</div>
+      <a class="sb-item" href="#" data-page="lecteurs" data-title="Lecteurs">
+        <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+        Lecteurs
+      </a>
+      <a class="sb-item" href="#" data-page="employes" data-title="Employés">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
+        Employés
+      </a>
+      <a class="sb-item" href="#" data-page="sites" data-title="Sites">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Sites
+      </a>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label">Administration</div>
+      <a class="sb-item" href="#" data-page="comptes" data-title="Gestion des comptes">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Gestion des comptes
+      </a>
+    </div>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-avatar" style="background:#2563eb">AD</div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-uname">Admin SEBN</div>
+        <div class="sb-urole">AdminSEBN</div>
+      </div>
+      <button class="sb-logout" title="Déconnexion">
+        <svg viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<div class="main-wrap">
+  <header class="app-header">
+    <span class="app-header-title" id="headerTitle">Tableau de bord</span>
+    <span class="app-header-site">Site 1</span>
+    <span class="app-header-date">lun. 21 avr. 2026</span>
+    <button class="app-header-theme-btn" id="themeBtn" title="Mode sombre">
+      <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </header>
+
+  <!-- ══ PAGE TABLEAU DE BORD ══ -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-pad">
+
+      <!-- Filtres -->
+      <div class="filters-bar">
+        <span class="filters-label">Filtres</span>
+        <input type="date" class="f-input" value="2026-04-21" style="width:128px"/>
+        <span class="f-arrow">→</span>
+        <input type="date" class="f-input" value="2026-04-21" style="width:128px"/>
+        <input type="time" class="f-input" value="00:00" style="width:80px"/>
+        <span class="f-arrow">→</span>
+        <input type="time" class="f-input" value="23:59" style="width:80px"/>
+        <select class="f-select" style="width:130px">
+          <option value="">Tous les repas</option>
+          <option>Plat chaud</option><option>Sandwich</option>
+        </select>
+        <select class="f-select" style="width:130px">
+          <option value="">Tous les sites</option>
+          <option>Site 1</option><option>Site 2</option><option>Site 3</option>
+        </select>
+        <input type="text" class="f-input" placeholder="Employé / Matricule" style="width:190px"/>
+        <button class="btn">Aujourd'hui</button>
+        <button class="btn btn-primary">Appliquer</button>
+        <button class="btn">Réinitialiser</button>
+      </div>
+
+      <!-- Exports -->
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px">
+        <button class="btn btn-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export résumé
+        </button>
+        <button class="btn btn-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export détaillé
+        </button>
+      </div>
+
+      <!-- KPI -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-card-top">
+            <span class="kpi-card-label">Repas servis</span>
+            <div class="kpi-card-icon" style="background:#eff6ff;color:#2563eb">
+              <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>
+            </div>
+          </div>
+          <div class="kpi-card-value">247</div>
+          <div class="kpi-trend up">▲ +6,9% vs hier</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:49%;background:#2563eb"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-top">
+            <span class="kpi-card-label">Plats chauds</span>
+            <div class="kpi-card-icon" style="background:#eff6ff;color:#2563eb">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+          </div>
+          <div class="kpi-card-value">162</div>
+          <div class="kpi-trend down">▼ −2,4% vs hier</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:66%;background:#2563eb"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-card-top">
+            <span class="kpi-card-label">Sandwichs</span>
+            <div class="kpi-card-icon" style="background:#fdf4ff;color:#7c3aed">
+              <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+          </div>
+          <div class="kpi-card-value">85</div>
+          <div class="kpi-trend up">▲ +34,9% vs hier</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:34%;background:#7c3aed"></div></div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-card">
+        <div class="charts-inner">
+          <div class="chart-left">
+            <div class="chart-section-title">Répartition plats <span class="chart-section-sub">21/04/2026</span></div>
+            <canvas id="pieCanvas" width="220" height="220" style="display:block;margin:0 auto"></canvas>
+            <div class="pie-legend">
+              <div class="pie-legend-item" style="background:#eff6ff">
+                <div class="pie-dot" style="background:#2563eb"></div>
+                <span class="pie-legend-label">Plats chauds</span>
+                <span class="pie-legend-value" style="color:#2563eb">162</span>
+                <span class="pie-legend-pct">(66%)</span>
+              </div>
+              <div class="pie-legend-item" style="background:#fdf4ff">
+                <div class="pie-dot" style="background:#7c3aed"></div>
+                <span class="pie-legend-label">Sandwich</span>
+                <span class="pie-legend-value" style="color:#7c3aed">85</span>
+                <span class="pie-legend-pct">(34%)</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-sep"></div>
+          <div class="chart-right">
+            <div class="chart-section-title">Passages par heure <span class="chart-section-sub">21/04/2026</span></div>
+            <canvas id="barCanvas" style="max-height:160px"></canvas>
+            <div class="site-divider">
+              <div class="chart-section-title">Repas par site</div>
+              <div class="site-row">
+                <div class="site-labels">
+                  <div class="site-label-item">Site 1</div>
+                  <div class="site-label-item">Site 2</div>
+                  <div class="site-label-item">Site 3</div>
+                </div>
+                <div style="flex:1"><canvas id="siteCanvas" style="max-height:150px"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feed -->
+      <div class="feed-card">
+        <div class="feed-hdr">
+          <span class="feed-title">Feed</span>
+          <div class="live-badge"><div class="pulse"></div>En direct</div>
+        </div>
+        <table class="app-table">
+          <thead><tr><th>Nom</th><th>Matricule</th><th>Type de repas</th><th>Pointage</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:500">Karim Belhadj</td><td style="color:var(--text2)">MAT-0042</td><td><span class="badge-repas badge-plat">Plat chaud</span></td><td style="color:var(--text2)">21/04 13:57</td></tr>
+            <tr><td style="font-weight:500">Leila Mansouri</td><td style="color:var(--text2)">MAT-0118</td><td><span class="badge-repas badge-sandwich">Sandwich</span></td><td style="color:var(--text2)">21/04 13:54</td></tr>
+            <tr><td style="font-weight:500">Bilel Trabelsi</td><td style="color:var(--text2)">MAT-0205</td><td><span class="badge-repas badge-plat">Plat chaud</span></td><td style="color:var(--text2)">21/04 13:51</td></tr>
+            <tr><td style="font-weight:500">Amira Chaouachi</td><td style="color:var(--text2)">MAT-0087</td><td><span class="badge-repas badge-plat">Plat chaud</span></td><td style="color:var(--text2)">21/04 13:49</td></tr>
+            <tr><td style="font-weight:500">Sami Jerbi</td><td style="color:var(--text2)">MAT-0311</td><td><span class="badge-repas badge-sandwich">Sandwich</span></td><td style="color:var(--text2)">21/04 13:46</td></tr>
+            <tr><td style="font-weight:500">Nadia Ghorbel</td><td style="color:var(--text2)">MAT-0174</td><td><span class="badge-repas badge-plat">Plat chaud</span></td><td style="color:var(--text2)">21/04 13:42</td></tr>
+            <tr><td style="font-weight:500">Youssef Saadi</td><td style="color:var(--text2)">MAT-0256</td><td><span class="badge-repas badge-plat">Plat chaud</span></td><td style="color:var(--text2)">21/04 13:38</td></tr>
+            <tr><td style="font-weight:500">Rim Ben Salah</td><td style="color:var(--text2)">MAT-0093</td><td><span class="badge-repas badge-sandwich">Sandwich</span></td><td style="color:var(--text2)">21/04 13:35</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE LECTEURS ══ -->
+  <div class="page" id="page-lecteurs">
+    <div class="page-pad">
+      <!-- Résumé -->
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <div class="summary-stat"><div class="sv" style="color:var(--primary)">3</div><div class="sl">Total</div></div>
+        <div class="summary-stat"><div class="sv" style="color:var(--success)">2</div><div class="sl">En ligne</div></div>
+        <div class="summary-stat"><div class="sv" style="color:var(--danger)">1</div><div class="sl">Hors ligne</div></div>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-hdr">
+          <span class="admin-hdr-title">Lecteurs</span>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modalLecteur')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Ajouter
+          </button>
+        </div>
+        <table class="app-table">
+          <thead><tr><th>Nom</th><th>Adresse IP</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:500">Lecteur A</td>
+              <td style="color:var(--text2);font-family:monospace">192.168.1.101</td>
+              <td><span class="tag tag-green">Actif</span></td>
+              <td style="display:flex;gap:6px">
+                <button class="btn btn-sm">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Modifier
+                </button>
+                <button class="btn btn-danger btn-sm">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                  Supprimer
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:500">Lecteur B</td>
+              <td style="color:var(--text2);font-family:monospace">192.168.2.101</td>
+              <td><span class="tag tag-green">Actif</span></td>
+              <td style="display:flex;gap:6px">
+                <button class="btn btn-sm">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Modifier
+                </button>
+                <button class="btn btn-danger btn-sm">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                  Supprimer
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:500">Lecteur C</td>
+              <td style="color:var(--text2);font-family:monospace">192.168.3.101</td>
+              <td><span class="tag tag-default">Inactif</span></td>
+              <td style="display:flex;gap:6px">
+                <button class="btn btn-sm">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Modifier
+                </button>
+                <button class="btn btn-danger btn-sm">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                  Supprimer
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE EMPLOYÉS ══ -->
+  <div class="page" id="page-employes">
+    <div class="page-pad">
+      <!-- Stats par site -->
+      <div class="section-label">État par site</div>
+      <div class="row-grid-3" style="margin-bottom:18px">
+        <div class="ant-card">
+          <div class="stat-pair" style="margin-bottom:10px">
+            <div>
+              <div style="font-weight:600;font-size:15px;color:var(--text)">Site 1</div>
+              <div style="font-size:12px;color:var(--text2)">SEBN-S1</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:var(--text2)">Employés actifs</div>
+              <div class="stat-value" style="color:#1677ff">👥 186</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text2)">
+            Dernière synchro : <strong>il y a 2 heures</strong>
+            <span class="tag tag-blue" style="margin-left:6px;font-size:11px">Auto</span>
+            <div style="margin-top:4px"><span style="color:#389e0d">+3 nouveaux</span> · <span style="color:#d48806">2 mis à jour</span></div>
+          </div>
+        </div>
+        <div class="ant-card">
+          <div class="stat-pair" style="margin-bottom:10px">
+            <div>
+              <div style="font-weight:600;font-size:15px;color:var(--text)">Site 2</div>
+              <div style="font-size:12px;color:var(--text2)">SEBN-S2</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:var(--text2)">Employés actifs</div>
+              <div class="stat-value" style="color:#1677ff">👥 142</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text2)">
+            Dernière synchro : <strong>il y a 5 heures</strong>
+            <span class="tag tag-green" style="margin-left:6px;font-size:11px">Manuel</span>
+            <div style="margin-top:4px"><span style="color:#999">158 inchangés</span></div>
+          </div>
+        </div>
+        <div class="ant-card">
+          <div class="stat-pair" style="margin-bottom:10px">
+            <div>
+              <div style="font-weight:600;font-size:15px;color:var(--text)">Site 3</div>
+              <div style="font-size:12px;color:var(--text2)">SEBN-S3</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:var(--text2)">Employés actifs</div>
+              <div class="stat-value" style="color:#1677ff">👥 94</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text2)">Aucune synchronisation effectuée</div>
+        </div>
+      </div>
+
+      <!-- Import MorphoManager -->
+      <div class="import-box">
+        <div class="import-title">Import depuis MorphoManager</div>
+        <div class="import-desc">Importe ou met à jour les employés d'un site spécifique. Opération idempotente — sans doublons ni désactivation.</div>
+        <div class="form-group">
+          <label class="form-label">Site</label>
+          <select class="form-select" style="width:100%">
+            <option>Site 1</option><option>Site 2</option><option>Site 3</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="height:36px;font-size:14px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Importer depuis MorphoManager
+        </button>
+      </div>
+
+      <!-- Tableau -->
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">
+        Liste des employés <span style="font-size:13px;color:var(--text2);font-weight:400">— Site 1</span>
+      </div>
+      <div class="admin-card">
+        <table class="app-table">
+          <thead><tr><th>Matricule</th><th>Nom</th><th>Prénom</th><th>Statut</th><th>Quota</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text2)">MAT-0042</td><td style="font-weight:500">Belhadj</td><td>Karim</td><td><span class="tag tag-green">Actif</span></td><td>1 repas/j</td></tr>
+            <tr><td style="color:var(--text2)">MAT-0087</td><td style="font-weight:500">Chaouachi</td><td>Amira</td><td><span class="tag tag-green">Actif</span></td><td>1 repas/j</td></tr>
+            <tr><td style="color:var(--text2)">MAT-0118</td><td style="font-weight:500">Mansouri</td><td>Leila</td><td><span class="tag tag-green">Actif</span></td><td>1 repas/j</td></tr>
+            <tr><td style="color:var(--text2)">MAT-0174</td><td style="font-weight:500">Ghorbel</td><td>Nadia</td><td><span class="tag tag-green">Actif</span></td><td>1 repas/j</td></tr>
+            <tr><td style="color:var(--text2)">MAT-0205</td><td style="font-weight:500">Trabelsi</td><td>Bilel</td><td><span class="tag tag-green">Actif</span></td><td>2 repas/j</td></tr>
+            <tr><td style="color:var(--text2)">MAT-0256</td><td style="font-weight:500">Saadi</td><td>Youssef</td><td><span class="tag tag-default">Inactif</span></td><td>1 repas/j</td></tr>
+            <tr><td style="color:var(--text2)">MAT-0311</td><td style="font-weight:500">Jerbi</td><td>Sami</td><td><span class="tag tag-green">Actif</span></td><td>1 repas/j</td></tr>
+            <tr><td style="color:var(--text2)">MAT-0329</td><td style="font-weight:500">Hammami</td><td>Ons</td><td><span class="tag tag-green">Actif</span></td><td>2 repas/j</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE SITES ══ -->
+  <div class="page" id="page-sites">
+    <div class="page-pad">
+      <div class="flex-between" style="margin-bottom:20px">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--text1)">Gestion des sites</div>
+          <div class="text-secondary">3 sites au total — 2 actifs</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modalSite')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Ajouter un site
+        </button>
+      </div>
+
+      <div class="row-grid-3">
+        <!-- Site 1 -->
+        <div class="site-card">
+          <div class="site-card-top">
+            <div>
+              <div class="site-card-name">Site 1</div>
+              <div class="site-card-id">SEBN-S1</div>
+            </div>
+            <span class="tag tag-green">Actif</span>
+          </div>
+          <div class="site-card-metric">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text1)">186</span>
+            <span style="font-size:12px;color:var(--text2)">employés actifs</span>
+          </div>
+          <div class="site-card-actions">
+            <button class="btn btn-sm" style="flex:1">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <button class="btn btn-purple btn-sm" style="flex:1">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              MorphoDB
+            </button>
+            <button class="btn btn-danger btn-sm">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Site 2 -->
+        <div class="site-card">
+          <div class="site-card-top">
+            <div>
+              <div class="site-card-name">Site 2</div>
+              <div class="site-card-id">SEBN-S2</div>
+            </div>
+            <span class="tag tag-green">Actif</span>
+          </div>
+          <div class="site-card-metric">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text1)">142</span>
+            <span style="font-size:12px;color:var(--text2)">employés actifs</span>
+          </div>
+          <div class="site-card-actions">
+            <button class="btn btn-sm" style="flex:1">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <button class="btn btn-purple btn-sm" style="flex:1">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              MorphoDB
+            </button>
+            <button class="btn btn-danger btn-sm">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Site 3 -->
+        <div class="site-card">
+          <div class="site-card-top">
+            <div>
+              <div class="site-card-name">Site 3</div>
+              <div class="site-card-id">SEBN-S3</div>
+            </div>
+            <span class="tag tag-default">Inactif</span>
+          </div>
+          <div class="site-card-metric">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span style="font-size:13px;font-weight:600;color:var(--text1)">94</span>
+            <span style="font-size:12px;color:var(--text2)">employés actifs</span>
+          </div>
+          <div class="site-card-actions">
+            <button class="btn btn-sm" style="flex:1">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <button class="btn btn-purple btn-sm" style="flex:1">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              MorphoDB
+            </button>
+            <button class="btn btn-danger btn-sm">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PAGE GESTION DES COMPTES ══ -->
+  <div class="page" id="page-comptes">
+    <div class="page-pad">
+      <div class="admin-hdr" style="margin-bottom:16px;border:none;padding:0">
+        <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--text)">Gestion des comptes</h2>
+        <button class="btn btn-primary" onclick="openModal('modalCompte')">+ Nouveau compte</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-bar">
+        <div class="tab-item active" onclick="switchTab(this,'tab-comptes')">Comptes</div>
+        <div class="tab-item" onclick="switchTab(this,'tab-historique')">Historique</div>
+      </div>
+
+      <div class="tab-panel active" id="tab-comptes">
+        <div class="admin-card">
+          <table class="app-table">
+            <thead><tr><th>Email</th><th>Nom</th><th>Rôle</th><th>Site</th><th>Statut</th><th>Dernière connexion</th><th>Créé le</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>admin@sebn.tn</td>
+                <td style="font-weight:500">Brahim Mohamed</td>
+                <td><span class="tag tag-blue">AdminSEBN</span></td>
+                <td style="color:var(--text2)">—</td>
+                <td><label class="switch"><input type="checkbox" checked><span class="switch-slider"></span></label></td>
+                <td style="color:var(--text2)">21/04/2026 13:55</td>
+                <td style="color:var(--text2)">01/01/2026 09:00</td>
+                <td><button class="btn btn-sm">Réinitialiser MDP</button></td>
+              </tr>
+              <tr>
+                <td>responsable1@sebn.tn</td>
+                <td style="font-weight:500">Mansouri Amina</td>
+                <td><span class="tag tag-green">Gestionnaire</span></td>
+                <td style="color:var(--text2)">Site 1</td>
+                <td><label class="switch"><input type="checkbox" checked><span class="switch-slider"></span></label></td>
+                <td style="color:var(--text2)">20/04/2026 18:02</td>
+                <td style="color:var(--text2)">15/01/2026 10:30</td>
+                <td><button class="btn btn-sm">Réinitialiser MDP</button></td>
+              </tr>
+              <tr>
+                <td>prestataire@cantine.tn</td>
+                <td style="font-weight:500">Société Repaix</td>
+                <td><span class="tag tag-purple">Prestataire</span></td>
+                <td style="color:var(--text2)">—</td>
+                <td><label class="switch"><input type="checkbox"><span class="switch-slider"></span></label></td>
+                <td style="color:var(--text2)">—</td>
+                <td style="color:var(--text2)">10/02/2026 14:00</td>
+                <td><button class="btn btn-sm">Réinitialiser MDP</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-historique">
+        <div class="admin-card">
+          <table class="app-table">
+            <thead><tr><th>Acteur</th><th>Action</th><th>Cible</th><th>Date</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>admin@sebn.tn</td>
+                <td><span class="tag tag-green">Created</span></td>
+                <td>responsable1@sebn.tn</td>
+                <td style="color:var(--text2)">15/01/2026 10:30</td>
+              </tr>
+              <tr>
+                <td>admin@sebn.tn</td>
+                <td><span class="tag tag-blue">RoleChanged</span></td>
+                <td>prestataire@cantine.tn</td>
+                <td style="color:var(--text2)">10/02/2026 15:12</td>
+              </tr>
+              <tr>
+                <td>admin@sebn.tn</td>
+                <td><span class="tag tag-red">Deactivated</span></td>
+                <td>prestataire@cantine.tn</td>
+                <td style="color:var(--text2)">01/04/2026 09:45</td>
+              </tr>
+              <tr>
+                <td>admin@sebn.tn</td>
+                <td><span class="tag tag-orange">PasswordReset</span></td>
+                <td>responsable1@sebn.tn</td>
+                <td style="color:var(--text2)">18/04/2026 11:00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /main-wrap -->
+
+<!-- ══ MODAL : Ajouter un lecteur ══ -->
+<div class="modal-overlay" id="modalLecteur" onclick="closeModalOutside(event,'modalLecteur')">
+  <div class="modal">
+    <div class="modal-title">Ajouter un lecteur</div>
+    <div class="form-group">
+      <label class="form-label">Nom</label>
+      <input class="form-input" placeholder="Lecteur D" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Adresse IP</label>
+      <input class="form-input" placeholder="192.168.4.101" />
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px">
+      <label class="switch"><input type="checkbox" checked><span class="switch-slider"></span></label>
+      <span style="font-size:14px;color:var(--text)">Actif</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modalLecteur')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modalLecteur')">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL : Ajouter un site ══ -->
+<div class="modal-overlay" id="modalSite" onclick="closeModalOutside(event,'modalSite')">
+  <div class="modal">
+    <div class="modal-title">Ajouter un site</div>
+    <div class="form-group">
+      <label class="form-label">Identifiant (SiteId)</label>
+      <input class="form-input" placeholder="SEBN-TUN-04" style="text-transform:uppercase" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nom du site</label>
+      <input class="form-input" placeholder="SEBN Tunis 04" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modalSite')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modalSite')">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL : Nouveau compte ══ -->
+<div class="modal-overlay" id="modalCompte" onclick="closeModalOutside(event,'modalCompte')">
+  <div class="modal">
+    <div class="modal-title">Créer un compte</div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" placeholder="utilisateur@sebn.tn" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nom complet</label>
+      <input class="form-input" placeholder="Nom Prénom" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mot de passe</label>
+      <input class="form-input" type="password" placeholder="••••••••" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rôle</label>
+      <select class="form-select">
+        <option>Admin SEBN</option>
+        <option>Gestionnaire</option>
+        <option>Prestataire</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Site</label>
+      <select class="form-select">
+        <option value="">Tous les sites</option>
+        <option>Site 1</option><option>Site 2</option><option>Site 3</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modalCompte')">Annuler</button>
+      <button class="btn btn-primary" onclick="closeModal('modalCompte')">Créer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Navigation ── */
+document.querySelectorAll('.sb-item[data-page]').forEach(item => {
+  item.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + item.dataset.page).classList.add('active');
+    document.getElementById('headerTitle').textContent = item.dataset.title;
+  });
+});
+
+/* ── Dark mode ── */
+const html = document.documentElement;
+const themeBtn = document.getElementById('themeBtn');
+const themeIcon = document.getElementById('themeIcon');
+const SUN = '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+const MOON = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+let isDark = localStorage.getItem('theme') === 'dark';
+function applyTheme() {
+  html.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  themeIcon.innerHTML = isDark ? SUN : MOON;
+  themeBtn.title = isDark ? 'Mode clair' : 'Mode sombre';
+}
+applyTheme();
+themeBtn.addEventListener('click', () => { isDark = !isDark; localStorage.setItem('theme', isDark ? 'dark' : 'light'); applyTheme(); });
+
+/* ── Tabs ── */
+function switchTab(el, panelId) {
+  el.closest('.page').querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  el.closest('.page').querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(panelId).classList.add('active');
+}
+
+/* ── Modals ── */
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOutside(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+/* ── Donut ── */
+new Chart(document.getElementById('pieCanvas'), {
+  type: 'doughnut',
+  data: { labels: ['Plats chauds','Sandwich'], datasets: [{ data:[162,85], backgroundColor:['#2563eb','#7c3aed'], borderWidth:0, hoverOffset:4 }] },
+  options: { cutout:'68%', plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.label} : ${ctx.parsed}`}} } },
+  plugins: [{ id:'center', afterDraw(chart) {
+    const {ctx,chartArea:{width,height,left,top}}=chart;
+    const cx=left+width/2,cy=top+height/2;
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='700 22px -apple-system,sans-serif';ctx.fillStyle=isDark?'#f1f5f9':'#0f172a';
+    ctx.fillText('247',cx,cy-9);
+    ctx.font='400 10px -apple-system,sans-serif';ctx.fillStyle='#64748b';
+    ctx.fillText('repas',cx,cy+10);ctx.restore();
+  }}]
+});
+
+/* ── Bar chart ── */
+new Chart(document.getElementById('barCanvas'), {
+  type:'bar',
+  data:{
+    labels:['6h','7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h'],
+    datasets:[
+      {label:'Plat chaud',data:[0,0,2,5,8,42,61,34,7,3,0,0,0,0,0],backgroundColor:'#2563eb',stack:'a'},
+      {label:'Sandwich',data:[0,0,1,3,4,18,31,22,5,1,0,0,0,0,0],backgroundColor:'#7c3aed',stack:'a',borderRadius:{topLeft:3,topRight:3}}
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',font:{size:11}}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:11}}},
+      y:{grid:{color:'#e2e8f0'},ticks:{font:{size:11}},beginAtZero:true}
+    }
+  }
+});
+
+/* ── Site horizontal bar ── */
+new Chart(document.getElementById('siteCanvas'), {
+  type:'bar',
+  data:{
+    labels:['Site 1','Site 2','Site 3'],
+    datasets:[
+      {label:'Plat chaud',data:[96,45,21],backgroundColor:'#2563eb',borderRadius:{topRight:3,bottomRight:3}},
+      {label:'Sandwich',data:[48,24,13],backgroundColor:'#7c3aed',borderRadius:{topRight:3,bottomRight:3}}
+    ]
+  },
+  options:{
+    indexAxis:'y',responsive:true,
+    plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',font:{size:11}}}},
+    scales:{
+      x:{grid:{color:'#e2e8f0'},ticks:{font:{size:11}},beginAtZero:true},
+      y:{display:false}
+    }
+  }
+});
+</script>
+</body>
+</html>
