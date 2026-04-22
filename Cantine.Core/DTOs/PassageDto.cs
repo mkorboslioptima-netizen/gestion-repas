@@ -11,4 +11,5 @@ public class PassageDto
     public DateTime Timestamp { get; set; }
     public RepasType RepasType { get; set; }
     public string LecteurNom { get; set; } = string.Empty;
+    public string SiteId { get; set; } = string.Empty;
 }

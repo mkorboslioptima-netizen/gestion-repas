@@ -211,6 +211,7 @@ export default function DashboardPage() {
   const trendSandwich  = calcTrend(totalSandwich, hierSandwich);
   const trendQuota     = calcTrend(totalQuota, hierQuota);
 
+  // filteredFeed : pour le feed en direct uniquement (SSE ou historique)
   const filteredFeed = useMemo(() => {
     let result = feedPassages;
     if (filtre.repasType) result = result.filter(p => p.repasType === filtre.repasType);
@@ -218,16 +219,47 @@ export default function DashboardPage() {
     return result;
   }, [feedPassages, filtre.repasType, filtre.matricule]);
 
-  const chartData = useMemo(() => buildChartData(filteredFeed, chartMode, filtre.dateDebut, filtre.dateFin),
-    [filteredFeed, chartMode, filtre.dateDebut, filtre.dateFin]);
-  const pieData = useMemo(() => [
-    { name: 'Plats chauds', value: totalPlatChaud },
-    { name: 'Sandwich', value: totalSandwich },
-  ], [totalPlatChaud, totalSandwich]);
+  // historiqueFiltré : historique complet du jour (API), filtré par matricule/type
+  // Utilisé pour KPIs et graphiques — pas affecté par la limite SSE de 50 passages
+  const historiqueFiltré = useMemo(() => {
+    let result = historique;
+    if (filtre.repasType) result = result.filter(p => p.repasType === filtre.repasType);
+    if (filtre.matricule) result = result.filter(p => p.matricule.toLowerCase().includes(filtre.matricule!.toLowerCase()));
+    return result;
+  }, [historique, filtre.repasType, filtre.matricule]);
 
-  const siteData = useMemo(() =>
-    stats.map(s => ({ site: s.nomSite, platChaud: s.platChaud, sandwich: s.sandwich })),
-  [stats]);
+  const kpiPassages  = filtre.matricule ? historiqueFiltré.length : totalPassages;
+  const kpiPlatChaud = filtre.matricule
+    ? historiqueFiltré.filter(p => p.repasType === 'PlatChaud').length
+    : totalPlatChaud;
+  const kpiSandwich  = filtre.matricule
+    ? historiqueFiltré.filter(p => p.repasType === 'Sandwich').length
+    : totalSandwich;
+
+  const chartData = useMemo(() => buildChartData(historiqueFiltré, chartMode, filtre.dateDebut, filtre.dateFin),
+    [historiqueFiltré, chartMode, filtre.dateDebut, filtre.dateFin]);
+  const pieData = useMemo(() => [
+    { name: 'Plats chauds', value: kpiPlatChaud },
+    { name: 'Sandwich', value: kpiSandwich },
+  ], [kpiPlatChaud, kpiSandwich]);
+
+  const siteData = useMemo(() => {
+    if (filtre.matricule) {
+      const grouped: Record<string, { platChaud: number; sandwich: number }> = {};
+      for (const p of historiqueFiltré) {
+        if (!grouped[p.siteId]) grouped[p.siteId] = { platChaud: 0, sandwich: 0 };
+        if (p.repasType === 'PlatChaud') grouped[p.siteId].platChaud++;
+        else grouped[p.siteId].sandwich++;
+      }
+      // Tous les sites toujours visibles, groupés par siteId pour éviter les incohérences de noms
+      return stats.map(s => ({
+        site: s.nomSite,
+        platChaud: grouped[s.siteId]?.platChaud ?? 0,
+        sandwich: grouped[s.siteId]?.sandwich ?? 0,
+      }));
+    }
+    return stats.map(s => ({ site: s.nomSite, platChaud: s.platChaud, sandwich: s.sandwich }));
+  }, [filtre.matricule, historiqueFiltré, stats]);
 
   return (
     <div style={{ padding: 18 }}>
@@ -253,19 +285,19 @@ export default function DashboardPage() {
         return (
           <Row gutter={[12, 12]} style={{ marginBottom: 18 }}>
             <Col xs={12} sm={8}>
-              <KpiCard label="Repas servis" value={totalPassages} color="#2563eb" bgColor="#eff6ff"
+              <KpiCard label="Repas servis" value={kpiPassages} color="#2563eb" bgColor="#eff6ff"
                 icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>}
-                percent={Math.min(100, Math.round(totalPassages / 5))} trend={jourUnique ? trendPassages : undefined} />
+                percent={Math.min(100, Math.round(kpiPassages / 5))} trend={jourUnique && !filtre.matricule ? trendPassages : undefined} />
             </Col>
             <Col xs={12} sm={8}>
-              <KpiCard label="Plats chauds" value={totalPlatChaud} color="#2563eb" bgColor="#eff6ff"
+              <KpiCard label="Plats chauds" value={kpiPlatChaud} color="#2563eb" bgColor="#eff6ff"
                 icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>}
-                percent={totalPassages ? Math.round(totalPlatChaud / totalPassages * 100) : 0} trend={jourUnique ? trendPlatChaud : undefined} />
+                percent={kpiPassages ? Math.round(kpiPlatChaud / kpiPassages * 100) : 0} trend={jourUnique && !filtre.matricule ? trendPlatChaud : undefined} />
             </Col>
             <Col xs={12} sm={8}>
-              <KpiCard label="Sandwichs" value={totalSandwich} color="#7c3aed" bgColor="#fdf4ff"
+              <KpiCard label="Sandwichs" value={kpiSandwich} color="#7c3aed" bgColor="#fdf4ff"
                 icon={<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>}
-                percent={totalPassages ? Math.round(totalSandwich / totalPassages * 100) : 0} trend={jourUnique ? trendSandwich : undefined} />
+                percent={kpiPassages ? Math.round(kpiSandwich / kpiPassages * 100) : 0} trend={jourUnique && !filtre.matricule ? trendSandwich : undefined} />
             </Col>
           </Row>
         );
@@ -301,7 +333,7 @@ export default function DashboardPage() {
                     return (
                       <g>
                         <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 20, fontWeight: 800, fill: '#0f172a' }}>
-                          {totalPassages.toLocaleString('fr')}
+                          {kpiPassages.toLocaleString('fr')}
                         </text>
                         <text x={cx} y={cy + 12} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 10, fill: '#64748b' }}>
                           repas
@@ -316,16 +348,16 @@ export default function DashboardPage() {
             {/* Légende manuelle avec détails */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
               {[
-                { label: 'Plats chauds', value: totalPlatChaud, color: '#2563eb', bg: '#eff6ff' },
-                { label: 'Sandwich',     value: totalSandwich,  color: '#7c3aed', bg: '#fdf4ff' },
+                { label: 'Plats chauds', value: kpiPlatChaud, color: '#2563eb', bg: '#eff6ff' },
+                { label: 'Sandwich',     value: kpiSandwich,  color: '#7c3aed', bg: '#fdf4ff' },
               ].map(item => (
                 <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: item.bg, borderRadius: 8, padding: '6px 10px' }}>
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, color: 'var(--text2)', flex: 1 }}>{item.label}</span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: item.color }}>{item.value.toLocaleString('fr')}</span>
-                  {totalPassages > 0 && (
+                  {kpiPassages > 0 && (
                     <span style={{ fontSize: 11, color: 'var(--text2)' }}>
-                      ({Math.round(item.value / totalPassages * 100)}%)
+                      ({Math.round(item.value / kpiPassages * 100)}%)
                     </span>
                   )}
                 </div>

@@ -78,7 +78,8 @@ public class MealLogRepository : IMealLogRepository
                 Prenom = m.Employee != null ? m.Employee.Prenom : string.Empty,
                 Timestamp = m.Timestamp,
                 RepasType = m.RepasType,
-                LecteurNom = m.Lecteur != null ? m.Lecteur.Nom : string.Empty
+                LecteurNom = m.Lecteur != null ? m.Lecteur.Nom : string.Empty,
+                SiteId = m.SiteId,
             })
             .ToListAsync();
 
@@ -117,7 +118,8 @@ public class MealLogRepository : IMealLogRepository
                 Prenom = m.Employee != null ? m.Employee.Prenom : string.Empty,
                 Timestamp = m.Timestamp,
                 RepasType = m.RepasType,
-                LecteurNom = m.Lecteur != null ? m.Lecteur.Nom : string.Empty
+                LecteurNom = m.Lecteur != null ? m.Lecteur.Nom : string.Empty,
+                SiteId = m.SiteId,
             })
             .ToListAsync();
 

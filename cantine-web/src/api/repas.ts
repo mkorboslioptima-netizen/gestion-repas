@@ -10,6 +10,7 @@ export interface PassageDto {
   timestamp: string; // ISO date string
   repasType: RepasType;
   lecteurNom: string;
+  siteId: string;
 }
 
 export interface RepasStatsDto {

@@ -116,6 +116,7 @@ public class RepasController : ControllerBase
                     Timestamp = m.Timestamp,
                     RepasType = m.RepasType,
                     LecteurNom = m.Lecteur?.Nom ?? string.Empty,
+                    SiteId = m.SiteId,
                 })
                 .ToList();
 
