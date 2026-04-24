@@ -62,17 +62,13 @@ body {
 }
 
 .sb-brand-icon {
-  width: 30px;
-  height: 30px;
-  background: var(--primary);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 13px;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
   flex-shrink: 0;
+  border-radius: 6px;
+  background: #fff;
+  padding: 2px;
 }
 
 .sb-brand-name {
@@ -139,6 +135,25 @@ body {
   stroke: currentColor;
   stroke-width: 1.8;
   flex-shrink: 0;
+}
+
+.sb-optima {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.sb-optima-label {
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.sb-optima-logo {
+  height: 30px;
+  object-fit: contain;
 }
 
 .sb-footer {

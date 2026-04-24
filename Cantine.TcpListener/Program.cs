@@ -34,12 +34,14 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IMealLogRepository, MealLogRepository>();
 
 // Services métier (Scoped via scope factory dans le BackgroundService)
+builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IMealEligibilityService, MealEligibilityService>();
 builder.Services.AddScoped<IMorphoEmployeeImporter, MorphoEmployeeImporter>();
 builder.Services.AddScoped<IMorphoSyncService, MorphoSyncService>();
 
 // Singletons (stateless, thread-safe)
 builder.Services.AddSingleton<IMorphoFrameParser, MorphoFrameParser>();
+builder.Services.AddSingleton<ISupervisionStore, SupervisionStore>();
 
 // Impression : mode Pdf (dev) ou EscPos (prod) selon appsettings.json > Printing:Mode
 builder.Services.Configure<PrintingOptions>(
@@ -56,6 +58,7 @@ else
 // Services hébergés
 builder.Services.AddHostedService<MorphoListenerService>();
 builder.Services.AddHostedService<MorphoSyncBackgroundService>();
+builder.Services.AddHostedService<SupervisionBackgroundService>();
 
 var host = builder.Build();
 host.Run();

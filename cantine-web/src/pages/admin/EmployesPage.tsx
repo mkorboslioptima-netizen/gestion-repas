@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
-  Button, Card, Col, Divider, Row, Select, Space,
+  Button, Card, Col, Input, Row, Select, Space,
   Statistic, Table, Tag, Typography, notification,
 } from 'antd';
-import { ImportOutlined, TeamOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ImportOutlined, TeamOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -12,6 +12,7 @@ import { getSites } from '../../api/sites';
 import {
   getEmployeStats,
   getEmployes,
+  getExportEmployes,
   importDepuisMorpho,
   type EmployeeDto,
   type EmployeeSiteStatsDto,
@@ -95,6 +96,11 @@ export default function EmployesPage() {
   const isGestionnaire = roles.includes('ResponsableCantine');
 
   const [loadingImport, setLoadingImport] = useState(false);
+  const [filtreSite, setFiltreSite] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [filtreStatut, setFiltreStatut] = useState<'tous' | 'actif' | 'inactif'>('tous');
+  const [filtreQuota, setFiltreQuota] = useState<'tous' | '1' | '2'>('tous');
+  const [exportLoading, setExportLoading] = useState(false);
 
   const { data: sites = [] } = useQuery({
     queryKey: ['sites'],
@@ -112,14 +118,61 @@ export default function EmployesPage() {
     ? allStats.filter(s => s.siteId === authSiteId)
     : allStats;
 
-  // Site actif pour le tableau : siteId du contexte, ou premier site disponible
-  const tableSiteId = siteId ?? (sites.length > 0 ? sites[0].siteId : null);
+  // Initialiser filtreSite au premier site disponible (admin uniquement)
+  useEffect(() => {
+    if (isAdmin && sites.length > 0 && filtreSite === null) {
+      setFiltreSite(sites[0].siteId);
+    }
+  }, [isAdmin, sites, filtreSite]);
+
+  // Site actif : filtreSite pour admin, site propre pour gestionnaire
+  const tableSiteId = isAdmin
+    ? (filtreSite ?? (sites.length > 0 ? sites[0].siteId : null))
+    : (authSiteId ?? null);
 
   const { data: employes = [], isLoading: employesLoading } = useQuery({
     queryKey: ['employes', tableSiteId],
     queryFn: () => getEmployes(tableSiteId!),
     enabled: !!tableSiteId,
   });
+
+  const employesFiltres = useMemo(() => {
+    return employes.filter(e => {
+      const q = search.toLowerCase();
+      const matchTexte = !q
+        || e.matricule.toLowerCase().includes(q)
+        || e.nom.toLowerCase().includes(q)
+        || e.prenom.toLowerCase().includes(q);
+      const matchStatut = filtreStatut === 'tous'
+        || (filtreStatut === 'actif' && e.actif)
+        || (filtreStatut === 'inactif' && !e.actif);
+      const matchQuota = filtreQuota === 'tous'
+        || e.maxMealsPerDay === Number(filtreQuota);
+      return matchTexte && matchStatut && matchQuota;
+    });
+  }, [employes, search, filtreStatut, filtreQuota]);
+
+  async function handleExportExcel() {
+    if (!tableSiteId) return;
+    setExportLoading(true);
+    try {
+      const blob = await getExportEmployes(tableSiteId, {
+        search: search || undefined,
+        actif: filtreStatut === 'tous' ? undefined : filtreStatut === 'actif',
+        maxMealsPerDay: filtreQuota === 'tous' ? undefined : Number(filtreQuota),
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `employes-${tableSiteId}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      notification.error({ message: 'Erreur lors de l\'export Excel' });
+    } finally {
+      setExportLoading(false);
+    }
+  }
 
   const invalidateStats = () => {
     queryClient.invalidateQueries({ queryKey: ['employe-stats'] });
@@ -208,18 +261,73 @@ export default function EmployesPage() {
       </div>}
 
       {/* ── Tableau des employés ── */}
-      <Title level={5} style={{ marginBottom: 12 }}>
-        Liste des employés
-        {tableSiteId && <Text type="secondary" style={{ fontSize: 13, marginLeft: 8 }}>— {tableSiteId}</Text>}
-      </Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Title level={5} style={{ margin: 0 }}>
+          Liste des employés
+          {tableSiteId && <Text type="secondary" style={{ fontSize: 13, marginLeft: 8 }}>— {tableSiteId}</Text>}
+          <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>({employesFiltres.length})</Text>
+        </Title>
+        <Button
+          icon={<DownloadOutlined />}
+          onClick={handleExportExcel}
+          loading={exportLoading}
+          disabled={!tableSiteId}
+          type="primary"
+          ghost
+        >
+          Export Excel
+        </Button>
+      </div>
+
+      {/* Barre de filtres */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+        {isAdmin && (
+          <Select
+            value={filtreSite ?? undefined}
+            onChange={setFiltreSite}
+            style={{ width: 180 }}
+            placeholder="Sélectionner un site..."
+          >
+            {sites.map(s => (
+              <Select.Option key={s.siteId} value={s.siteId}>{s.nom}</Select.Option>
+            ))}
+          </Select>
+        )}
+        <Input.Search
+          placeholder="Rechercher nom, prénom, matricule..."
+          allowClear
+          style={{ width: 280 }}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <Select
+          value={filtreStatut}
+          onChange={setFiltreStatut}
+          style={{ width: 130 }}
+        >
+          <Select.Option value="tous">Tous statuts</Select.Option>
+          <Select.Option value="actif">Actif</Select.Option>
+          <Select.Option value="inactif">Inactif</Select.Option>
+        </Select>
+        <Select
+          value={filtreQuota}
+          onChange={setFiltreQuota}
+          style={{ width: 140 }}
+        >
+          <Select.Option value="tous">Tous quotas</Select.Option>
+          <Select.Option value="1">1 repas/j</Select.Option>
+          <Select.Option value="2">2 repas/j</Select.Option>
+        </Select>
+      </div>
+
       <Table
-        dataSource={employes}
+        dataSource={employesFiltres}
         columns={COLONNES}
         rowKey="matricule"
         loading={employesLoading}
         pagination={{ pageSize: 20, showSizeChanger: false }}
         size="small"
-        locale={{ emptyText: 'Aucun employé importé' }}
+        locale={{ emptyText: 'Aucun employé trouvé' }}
         style={{ background: '#fff', borderRadius: 8 }}
       />
     </div>

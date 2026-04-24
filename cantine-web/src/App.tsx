@@ -11,6 +11,8 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import LecteursPage from './pages/admin/LecteursPage';
 import SitesPage from './pages/admin/SitesPage';
 import EmployesPage from './pages/admin/EmployesPage';
+import ImprimantesPage from './pages/admin/ImprimantesPage';
+import SupervisionPage from './pages/admin/SupervisionPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import GestionComptesPage from './pages/admin/GestionComptesPage';
@@ -35,6 +37,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/employes': 'Employés',
   '/admin/sites': 'Sites',
   '/admin/comptes': 'Gestion des comptes',
+  '/admin/imprimantes': 'Imprimantes',
+  '/admin/shifts': 'Shifts — Créneaux horaires',
+  '/admin/supervision': 'Supervision',
 };
 
 // ── Header bar ─────────────────────────────────────────────────────────────
@@ -97,7 +102,7 @@ function Sidebar() {
     }}>
       {/* Marque */}
       <div className="sb-brand">
-        <div className="sb-brand-icon">M</div>
+        <img src="/sebn.png" className="sb-brand-icon" alt="SEBN" />
         <div>
           <div className="sb-brand-name">Cantine SEBN</div>
           <div className="sb-brand-sub">v1.0 • {sites.length} sites</div>
@@ -143,9 +148,23 @@ function Sidebar() {
               <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
               Gestion des comptes
             </NavLink>
+            <NavLink to="/admin/imprimantes" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+              <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimantes
+            </NavLink>
+            <NavLink to="/admin/supervision" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+              <svg viewBox="0 0 24 24"><path d="M1 6l5.5 5.5L10 8l4 8 3-5 2.5 2.5L23 6"/></svg>
+              Supervision
+            </NavLink>
           </div>
         )}
       </nav>
+
+      {/* Créé par OPTIMA */}
+      <div className="sb-optima">
+        <span className="sb-optima-label">Créé par</span>
+        <img src="/optima-blanc.svg" className="sb-optima-logo" alt="OPTIMA" />
+      </div>
 
       {/* Pied de page */}
       <div className="sb-footer">
@@ -201,6 +220,22 @@ function AuthenticatedLayout() {
               element={
                 <PrivateRoute allowed={['AdminSEBN']}>
                   <GestionComptesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/imprimantes"
+              element={
+                <PrivateRoute allowed={['AdminSEBN']}>
+                  <ImprimantesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/supervision"
+              element={
+                <PrivateRoute allowed={['AdminSEBN']}>
+                  <SupervisionPage />
                 </PrivateRoute>
               }
             />

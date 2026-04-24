@@ -5,6 +5,10 @@ export interface LecteurDto {
   nom: string;
   adresseIP: string;
   actif: boolean;
+  nomImprimante: string | null;
+  printerIP: string | null;
+  portImprimante: number;
+  imprimanteConfiguree: boolean;
 }
 
 export interface CreateLecteurDto {
@@ -16,6 +20,9 @@ export interface UpdateLecteurDto {
   nom: string;
   adresseIP: string;
   actif: boolean;
+  nomImprimante?: string | null;
+  printerIP?: string | null;
+  portImprimante?: number;
 }
 
 export const fetchLecteurs = async (): Promise<LecteurDto[]> => {

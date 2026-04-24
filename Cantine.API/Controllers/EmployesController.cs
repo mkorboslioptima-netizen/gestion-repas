@@ -1,6 +1,7 @@
 using Cantine.Core.DTOs;
 using Cantine.Core.Interfaces;
 using Cantine.Infrastructure.Data;
+using Cantine.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,12 +16,14 @@ public class EmployesController : ControllerBase
     private readonly IMorphoEmployeeImporter _importer;
     private readonly IMorphoSyncService _syncService;
     private readonly CantineDbContext _context;
+    private readonly ExcelExportService _excelService;
 
-    public EmployesController(IMorphoEmployeeImporter importer, IMorphoSyncService syncService, CantineDbContext context)
+    public EmployesController(IMorphoEmployeeImporter importer, IMorphoSyncService syncService, CantineDbContext context, ExcelExportService excelService)
     {
         _importer = importer;
         _syncService = syncService;
         _context = context;
+        _excelService = excelService;
     }
 
     // POST /api/employes/import-morpho/{siteId}
@@ -46,9 +49,11 @@ public class EmployesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetEmployes([FromQuery] string siteId)
     {
-        var employes = await _context.Employees
+        var query = _context.Employees
             .AsNoTracking()
-            .Where(e => e.SiteId == siteId)
+            .Where(e => e.SiteId == siteId);
+
+        var employes = await query
             .Select(e => new EmployeeDto
             {
                 Matricule = e.Matricule,
@@ -134,6 +139,24 @@ public class EmployesController : ControllerBase
             .ToListAsync();
 
         return Ok(logs);
+    }
+
+    // GET /api/employes/export?siteId=&search=&actif=&maxMealsPerDay=
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportExcel(
+        [FromQuery] string siteId,
+        [FromQuery] string? search = null,
+        [FromQuery] bool? actif = null,
+        [FromQuery] int? maxMealsPerDay = null)
+    {
+        if (string.IsNullOrWhiteSpace(siteId))
+            return BadRequest(new { message = "siteId requis" });
+
+        var bytes = await _excelService.GenererExportEmployesAsync(siteId, search, actif, maxMealsPerDay);
+        var fileName = $"employes-{siteId}-{DateTime.Now:yyyyMMdd}.xlsx";
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
     }
 
     // POST /api/employes/sync-morpho

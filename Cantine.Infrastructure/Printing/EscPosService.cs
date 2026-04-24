@@ -9,7 +9,6 @@ namespace Cantine.Infrastructure.Printing;
 
 public class EscPosService : IEscPosService
 {
-    private const int PrinterPort = 9100;
     private const int TimeoutMs = 3000;
 
     private readonly ILogger<EscPosService> _logger;
@@ -31,7 +30,8 @@ public class EscPosService : IEscPosService
         {
             using var client = new TcpClient();
             client.SendTimeout = TimeoutMs;
-            await client.ConnectAsync(lecteur.PrinterIP, PrinterPort);
+            int port = lecteur.PortImprimante > 0 ? lecteur.PortImprimante : 9100;
+            await client.ConnectAsync(lecteur.PrinterIP, port);
 
             using var stream = client.GetStream();
             var data = BuildTicket(mealLog, employee, lecteur);

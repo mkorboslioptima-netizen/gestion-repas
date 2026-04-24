@@ -148,8 +148,7 @@ public class MorphoListenerService : BackgroundService
         }
 
         // 2. Vérification éligibilité (scoped au site du lecteur)
-        var today = DateOnly.FromDateTime(frame.Timestamp);
-        bool eligible = await eligibilityService.IsEligibleAsync(frame.Matricule, lecteur.SiteId, today);
+        bool eligible = await eligibilityService.IsEligibleAsync(frame.Matricule, lecteur.SiteId, frame.Timestamp);
         if (!eligible)
         {
             _logger.LogDebug("[Trame] Employé {Matricule} non éligible sur site {SiteId}", frame.Matricule, lecteur.SiteId);

@@ -36,11 +36,7 @@ export default function LoginPage() {
       <div className="login-card">
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-          <div style={{
-            width: 36, height: 36, background: '#2563eb', borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: 16,
-          }}>M</div>
+          <img src="/sebn.png" style={{ width: 38, height: 38, objectFit: 'contain' }} alt="SEBN" />
           <div>
             <div style={{ fontSize: 20, fontWeight: 600 }}>Cantine SEBN</div>
             <div style={{ fontSize: 11, color: 'var(--text2)' }}>Gestion repas multi-sites</div>
@@ -107,6 +103,12 @@ export default function LoginPage() {
             {loading ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>
+
+        {/* Créé par OPTIMA */}
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: 'var(--text2)' }}>Créé par</span>
+          <img src="/optima.jpg" style={{ height: 42, objectFit: 'contain' }} alt="OPTIMA" />
+        </div>
       </div>
     </div>
   );

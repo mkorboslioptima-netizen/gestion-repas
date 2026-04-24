@@ -52,3 +52,17 @@ export async function getEmployeStats(): Promise<EmployeeSiteStatsDto[]> {
   const { data } = await apiClient.get<EmployeeSiteStatsDto[]>('/api/employes/stats');
   return data;
 }
+
+export interface ExportEmployesParams {
+  search?: string;
+  actif?: boolean;
+  maxMealsPerDay?: number;
+}
+
+export async function getExportEmployes(siteId: string, filtres?: ExportEmployesParams): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>('/api/employes/export', {
+    params: { siteId, ...filtres },
+    responseType: 'blob',
+  });
+  return data;
+}

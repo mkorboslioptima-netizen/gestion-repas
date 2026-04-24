@@ -23,14 +23,20 @@ builder.Services.AddScoped<ILecteurRepository, LecteurRepository>();
 builder.Services.AddScoped<ILecteurService, LecteurService>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IMealLogRepository, MealLogRepository>();
+builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IMealEligibilityService, MealEligibilityService>();
 builder.Services.AddScoped<IMorphoEmployeeImporter, MorphoEmployeeImporter>();
 builder.Services.AddScoped<IMorphoSyncService, MorphoSyncService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IImprimanteService, ImprimanteService>();
+builder.Services.AddScoped<ImprimanteDiscoveryService>();
 builder.Services.AddScoped<ExcelExportService>();
 builder.Services.AddSingleton<IEscPosService, EscPosService>();
 builder.Services.AddSingleton<IMorphoFrameParser, MorphoFrameParser>();
+builder.Services.AddSingleton<ISupervisionStore, SupervisionStore>();
+builder.Services.AddScoped<ISupervisionChecker, SupervisionChecker>();
+builder.Services.AddHostedService<SupervisionBackgroundService>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
@@ -57,7 +63,11 @@ builder.Services.AddControllers()
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(
+                  "http://localhost:5173",
+                  "http://localhost:5174",
+                  "http://localhost:5175",
+                  "http://localhost:5176")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });

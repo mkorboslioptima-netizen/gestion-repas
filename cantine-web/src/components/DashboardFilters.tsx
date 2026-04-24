@@ -4,6 +4,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { getSites } from '../api/sites';
 import { getEmployes } from '../api/employes';
+import { getShifts } from '../api/shifts';
 import { useRole } from '../auth/useRole';
 
 export interface FiltreState {
@@ -33,6 +34,12 @@ export default function DashboardFilters({ onApply }: Props) {
   const [repasType, setRepasType]   = useState<'PlatChaud' | 'Sandwich' | undefined>(undefined);
   const [siteId, setSiteId]         = useState<string | undefined>(undefined);
   const [matricule, setMatricule]   = useState<string | undefined>(undefined);
+  const [activeShiftId, setActiveShiftId] = useState<number | null>(null);
+
+  const { data: shifts = [] } = useQuery({
+    queryKey: ['shifts'],
+    queryFn: getShifts,
+  });
 
   const { data: sites = [] } = useQuery({
     queryKey: ['sites'],
@@ -94,6 +101,17 @@ export default function DashboardFilters({ onApply }: Props) {
 
   function handleApply() { onApply(buildState()); }
 
+  function handleShift(shiftId: number) {
+    const shift = shifts.find(s => s.id === shiftId);
+    if (!shift) return;
+    const debut = shift.heureDebut.slice(0, 5);
+    const fin   = shift.heureFin.slice(0, 5);
+    setActiveShiftId(shiftId);
+    setHeureDebut(dayjs(debut, FMT_TIME));
+    setHeureFin(dayjs(fin, FMT_TIME));
+    onApply(buildState({ heureDebut: debut, heureFin: fin }));
+  }
+
   function handleReset() {
     const now = dayjs();
     setDates([now, now]);
@@ -102,6 +120,7 @@ export default function DashboardFilters({ onApply }: Props) {
     setRepasType(undefined);
     setSiteId(undefined);
     setMatricule(undefined);
+    setActiveShiftId(null);
     onApply({ dateDebut: today(), dateFin: today(), heureDebut: '00:00', heureFin: '23:59', repasType: undefined, siteId: undefined, matricule: undefined });
   }
 
@@ -112,6 +131,31 @@ export default function DashboardFilters({ onApply }: Props) {
       borderRadius: 10, padding: '10px 14px', marginBottom: 16,
     }}>
       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginRight: 4 }}>Filtres</span>
+
+      {/* Filtre par shift */}
+      <Select
+        size="small"
+        style={{ width: 190 }}
+        placeholder="Tous les shifts"
+        allowClear
+        value={activeShiftId ?? undefined}
+        onChange={(v) => {
+          if (!v) {
+            setActiveShiftId(null);
+            setHeureDebut(dayjs('00:00', FMT_TIME));
+            setHeureFin(dayjs('23:59', FMT_TIME));
+            onApply(buildState({ heureDebut: '00:00', heureFin: '23:59' }));
+          } else {
+            handleShift(v);
+          }
+        }}
+        options={[
+          ...shifts.map(s => ({
+            value: s.id,
+            label: `${s.nom}  ${s.heureDebut.slice(0, 5)}–${s.heureFin.slice(0, 5)}`,
+          })),
+        ]}
+      />
 
       <DatePicker.RangePicker
         size="small"

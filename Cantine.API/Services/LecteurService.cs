@@ -56,6 +56,9 @@ public class LecteurService : ILecteurService
         lecteur.Nom = dto.Nom;
         lecteur.AdresseIP = dto.AdresseIP;
         lecteur.Actif = dto.Actif;
+        lecteur.NomImprimante = dto.NomImprimante;
+        lecteur.PrinterIP = dto.PrinterIP;
+        lecteur.PortImprimante = dto.PortImprimante > 0 ? dto.PortImprimante : 9100;
 
         var updated = await _repository.UpdateAsync(lecteur);
         return ToDto(updated);
@@ -75,6 +78,10 @@ public class LecteurService : ILecteurService
         Id = l.Id,
         Nom = l.Nom,
         AdresseIP = l.AdresseIP,
-        Actif = l.Actif
+        Actif = l.Actif,
+        NomImprimante = l.NomImprimante,
+        PrinterIP = l.PrinterIP,
+        PortImprimante = l.PortImprimante,
+        ImprimanteConfiguree = !string.IsNullOrWhiteSpace(l.PrinterIP)
     };
 }

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Form, Input, Modal, Select, Switch } from 'antd';
+import { Form, Input, InputNumber, Modal, Select, Switch } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import type { LecteurDto, CreateLecteurDto, UpdateLecteurDto } from '../api/lecteurs';
 import { getSites } from '../api/sites';
@@ -27,15 +27,35 @@ export default function LecteurFormModal({ open, onClose, onSubmit, initialValue
     if (open) {
       form.setFieldsValue(
         initialValues
-          ? { nom: initialValues.nom, adresseIP: initialValues.adresseIP, actif: initialValues.actif }
-          : { nom: '', adresseIP: '', actif: true, siteId: sites.length === 1 ? sites[0].siteId : undefined }
+          ? {
+              nom: initialValues.nom,
+              adresseIP: initialValues.adresseIP,
+              actif: initialValues.actif,
+              nomImprimante: initialValues.nomImprimante ?? '',
+              printerIP: initialValues.printerIP ?? '',
+              portImprimante: initialValues.portImprimante || 9100,
+            }
+          : {
+              nom: '',
+              adresseIP: '',
+              actif: true,
+              siteId: sites.length === 1 ? sites[0].siteId : undefined,
+              nomImprimante: '',
+              printerIP: '',
+              portImprimante: 9100,
+            }
       );
     }
   }, [open, initialValues, form, sites]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    onSubmit(values);
+    onSubmit({
+      ...values,
+      nomImprimante: values.nomImprimante || null,
+      printerIP: values.printerIP || null,
+      portImprimante: values.portImprimante || 9100,
+    });
   };
 
   return (
@@ -74,7 +94,7 @@ export default function LecteurFormModal({ open, onClose, onSubmit, initialValue
 
         <Form.Item
           name="adresseIP"
-          label="Adresse IP"
+          label="Adresse IP pointeuse"
           rules={[
             { required: true, message: "L'adresse IP est obligatoire" },
             { pattern: IP_REGEX, message: 'Format IPv4 invalide (ex. 192.168.1.10)' },
@@ -88,6 +108,27 @@ export default function LecteurFormModal({ open, onClose, onSubmit, initialValue
             <Switch />
           </Form.Item>
         )}
+
+        {/* Section imprimante */}
+        <div style={{
+          border: '1px solid var(--border, #e2e8f0)',
+          borderRadius: 6,
+          padding: '12px 12px 0',
+          marginBottom: 16,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted, #64748b)', marginBottom: 8 }}>
+            Imprimante thermique associée
+          </div>
+          <Form.Item name="nomImprimante" label="Nom imprimante">
+            <Input placeholder="Ex: IMP-ENTREE-A" />
+          </Form.Item>
+          <Form.Item name="printerIP" label="Adresse IP imprimante">
+            <Input placeholder="192.168.x.x" />
+          </Form.Item>
+          <Form.Item name="portImprimante" label="Port TCP">
+            <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+          </Form.Item>
+        </div>
       </Form>
     </Modal>
   );

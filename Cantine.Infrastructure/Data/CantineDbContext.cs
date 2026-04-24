@@ -18,6 +18,7 @@ public class CantineDbContext : DbContext
     public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<UserAuditLog> UserAuditLogs => Set<UserAuditLog>();
+    public DbSet<ShiftConfig> ShiftConfigs => Set<ShiftConfig>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,5 +31,6 @@ public class CantineDbContext : DbContext
         modelBuilder.ApplyConfiguration(new SyncLogConfiguration());
         modelBuilder.ApplyConfiguration(new AppUserConfiguration());
         modelBuilder.ApplyConfiguration(new UserAuditLogConfiguration());
+        modelBuilder.ApplyConfiguration(new ShiftConfiguration());
     }
 }

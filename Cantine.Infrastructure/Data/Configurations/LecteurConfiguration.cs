@@ -32,6 +32,13 @@ public class LecteurConfiguration : IEntityTypeConfiguration<Lecteur>
             .HasMaxLength(45)
             .IsRequired(false);
 
+        builder.Property(l => l.NomImprimante)
+            .HasMaxLength(100)
+            .IsRequired(false);
+
+        builder.Property(l => l.PortImprimante)
+            .HasDefaultValue(9100);
+
         builder.HasOne(l => l.Site)
             .WithMany()
             .HasForeignKey(l => l.SiteId)
