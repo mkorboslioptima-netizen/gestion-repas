@@ -67,7 +67,7 @@ export default function LecteurFormModal({ open, onClose, onSubmit, initialValue
       okText={isEdit ? 'Enregistrer' : 'Ajouter'}
       cancelText="Annuler"
       confirmLoading={loading}
-      destroyOnHide
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" requiredMark>
         {!isEdit && (

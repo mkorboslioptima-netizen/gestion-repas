@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button, Popconfirm, Space, Table, Tag, Typography, message, Tooltip } from 'antd';
+import { Button, Popconfirm, Space, Table, Tag, message, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,7 +14,6 @@ import LecteurFormModal from '../../components/LecteurFormModal';
 import { getSupervisionStatus, checkLecteur } from '../../api/supervision';
 import type { EquipmentStatusDto } from '../../api/supervision';
 
-const { Title } = Typography;
 
 export default function LecteursPage() {
   const queryClient = useQueryClient();

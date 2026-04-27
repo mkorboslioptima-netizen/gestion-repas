@@ -23,7 +23,6 @@ builder.Services.AddScoped<ILecteurRepository, LecteurRepository>();
 builder.Services.AddScoped<ILecteurService, LecteurService>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IMealLogRepository, MealLogRepository>();
-builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IMealEligibilityService, MealEligibilityService>();
 builder.Services.AddScoped<IMorphoEmployeeImporter, MorphoEmployeeImporter>();
 builder.Services.AddScoped<IMorphoSyncService, MorphoSyncService>();
@@ -67,7 +66,8 @@ builder.Services.AddCors(options =>
                   "http://localhost:5173",
                   "http://localhost:5174",
                   "http://localhost:5175",
-                  "http://localhost:5176")
+                  "http://localhost:5176",
+                  "http://10.9.204.28")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });

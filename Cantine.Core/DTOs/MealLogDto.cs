@@ -9,8 +9,7 @@ public record MealLogDto(
     string SiteNom,
     string LecteurNom,
     string RepasType,
-    DateTime Timestamp,
-    string? ShiftNom
+    DateTime Timestamp
 );
 
 public record HistoriquePageDto(
