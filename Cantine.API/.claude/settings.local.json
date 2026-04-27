@@ -10,7 +10,12 @@
       "Bash(dotnet build *)",
       "Bash(xargs grep *)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['outputPath']\\); print\\(d['template']\\)\")",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(a['id'],a['status']\\) for a in d['artifacts']]\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(a['id'],a['status']\\) for a in d['artifacts']]\")",
+      "Bash(dotnet run *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(taskkill /F /IM \"Cantine.API.exe\")",
+      "Bash(taskkill /F /IM \"dotnet.exe\")",
+      "PowerShell(Stop-Process *)"
     ]
   }
 }
