@@ -28,10 +28,17 @@ public class RapportsController : ControllerBase
         var debut = new DateTime(annee, mois, 1);
         var fin   = debut.AddMonths(1);
 
-        var passages = await _context.MealLogs
+        var userSiteId = User.FindFirst("siteId")?.Value;
+        var isAdmin = User.IsInRole("AdminSEBN");
+
+        var logsQuery = _context.MealLogs
             .AsNoTracking()
-            .Where(m => m.Timestamp >= debut && m.Timestamp < fin)
-            .ToListAsync();
+            .Where(m => m.Timestamp >= debut && m.Timestamp < fin);
+
+        if (!isAdmin && userSiteId is not null)
+            logsQuery = logsQuery.Where(m => m.SiteId == userSiteId);
+
+        var passages = await logsQuery.ToListAsync();
 
         var result = passages
             .GroupBy(m => DateOnly.FromDateTime(m.Timestamp))

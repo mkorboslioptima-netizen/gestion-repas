@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
 import { login as apiLogin } from '../api/auth';
 
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,18 +70,36 @@ export default function LoginPage() {
             <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text2)', marginBottom: 5 }}>
               Mot de passe
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              placeholder="••••••••"
-              style={{
-                width: '100%', padding: '10px 12px', border: '1px solid var(--border)',
-                borderRadius: 8, fontSize: 13, color: 'var(--text)', background: 'var(--bg)', outline: 'none',
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                style={{
+                  width: '100%', padding: '10px 40px 10px 12px', border: '1px solid var(--border)',
+                  borderRadius: 8, fontSize: 13, color: 'var(--text)', background: 'var(--bg)', outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text2)', padding: 0, display: 'flex', alignItems: 'center',
+                }}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showPassword
+                  ? <EyeInvisibleOutlined style={{ fontSize: 16 }} />
+                  : <EyeOutlined style={{ fontSize: 16 }} />}
+              </button>
+            </div>
           </div>
 
           {error && (

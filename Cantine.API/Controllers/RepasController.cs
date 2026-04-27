@@ -30,6 +30,9 @@ public class RepasController : ControllerBase
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private string? GetUserSiteId() => User.FindFirst("siteId")?.Value;
+    private bool IsAdmin() => User.IsInRole("AdminSEBN");
+
     private static bool TryParseFiltreParams(
         string? dateDebutStr, string? dateFinStr,
         string? heureDebutStr, string? heureFinStr,
@@ -86,6 +89,8 @@ public class RepasController : ControllerBase
         [FromQuery] string? siteId = null,
         [FromQuery] string? repasType = null)
     {
+        if (!IsAdmin()) siteId = GetUserSiteId();
+
         // Mode filtré : requête directe sur DbContext
         if (dateDebut is not null || dateFin is not null || heureDebut is not null || heureFin is not null || siteId is not null || repasType is not null)
         {
@@ -142,6 +147,8 @@ public class RepasController : ControllerBase
         if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
                 out var start, out var end, out var tDebut, out var tFin, out var error))
             return BadRequest(new { message = error });
+
+        if (!IsAdmin()) siteId = GetUserSiteId();
 
         var sitesQuery = _context.Sites.AsNoTracking().Where(s => s.Actif);
         if (siteId is not null)
@@ -201,6 +208,8 @@ public class RepasController : ControllerBase
                 out var start, out var end, out var tDebut, out var tFin, out var error))
             return BadRequest(new { message = error });
 
+        if (!IsAdmin()) siteId = GetUserSiteId();
+
         var bytes = await _excelService.GenererExportPassagesAsync(start, end, tDebut, tFin, siteId, repasType);
 
         var dDebut = dateDebut ?? DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
@@ -224,6 +233,8 @@ public class RepasController : ControllerBase
         if (!TryParseFiltreParams(dateDebut, dateFin, heureDebut, heureFin,
                 out var start, out var end, out var tDebut, out var tFin, out var error))
             return BadRequest(new { message = error });
+
+        if (!IsAdmin()) siteId = GetUserSiteId();
 
         string? siteNom = null;
         if (siteId is not null)

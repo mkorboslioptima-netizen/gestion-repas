@@ -9,6 +9,7 @@ import dayjs from 'dayjs';
 import {
   getHistoriqueJour, getStatsJour, getExportExcel, getExportGlobal, type PassageDto,
 } from '../api/repas';
+import { useAuth } from '../auth/AuthContext';
 import KpiCard from '../components/KpiCard';
 import RoleGate from '../components/RoleGate';
 import DashboardFilters, { type FiltreState } from '../components/DashboardFilters';
@@ -80,12 +81,20 @@ const PIE_COLORS = ['#2563eb', '#7c3aed'];
 // ── Page Dashboard ────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const queryClient = useQueryClient();
+  const { roles, siteId: authSiteId } = useAuth();
+  const isAdmin = roles.includes('AdminSEBN');
   // ssePassages = passages temps-réel ajoutées via SSE uniquement
   const [ssePassages, setSsePassages] = useState<PassageDto[]>([]);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportGlobalLoading, setExportGlobalLoading] = useState(false);
   const [filtre, setFiltre] = useState<FiltreState>(defaultFiltre);
   const esRef = useRef<EventSource | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin && authSiteId) {
+      setFiltre(prev => ({ ...prev, siteId: authSiteId }));
+    }
+  }, [isAdmin, authSiteId]);
 
   // Stabiliser filtreParams pour éviter de nouveaux objets à chaque render
   const filtreParams = useMemo(() => ({
