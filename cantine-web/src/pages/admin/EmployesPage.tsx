@@ -17,7 +17,6 @@ import {
   type EmployeeDto,
   type EmployeeSiteStatsDto,
 } from '../../api/employes';
-import { useSite } from '../../context/SiteContext';
 import { useAuth } from '../../auth/AuthContext';
 
 dayjs.extend(relativeTime);
@@ -90,7 +89,6 @@ const COLONNES = [
 
 export default function EmployesPage() {
   const { roles, siteId: authSiteId } = useAuth();
-  const { siteId, setSiteId } = useSite();
   const queryClient = useQueryClient();
   const isAdmin = roles.includes('AdminSEBN');
   const isGestionnaire = roles.includes('ResponsableCantine');
@@ -231,8 +229,8 @@ export default function EmployesPage() {
               <Select
                 style={{ width: '100%' }}
                 placeholder="Sélectionnez un site"
-                value={siteId ?? undefined}
-                onChange={(v) => setSiteId(v)}
+                value={filtreSite ?? undefined}
+                onChange={setFiltreSite}
               >
                 {sites.map((s) => (
                   <Select.Option key={s.siteId} value={s.siteId}>{s.nom}</Select.Option>

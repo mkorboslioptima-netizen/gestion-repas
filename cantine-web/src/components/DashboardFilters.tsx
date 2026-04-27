@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSites } from '../api/sites';
 import { getEmployes } from '../api/employes';
 import { useRole } from '../auth/useRole';
+import { useAuth } from '../auth/AuthContext';
 
 export interface FiltreState {
   dateDebut: string;
@@ -27,11 +28,14 @@ function today() { return dayjs().format(FMT_DATE); }
 
 export default function DashboardFilters({ onApply }: Props) {
   const role = useRole();
+  const { siteId: authSiteId } = useAuth();
   const [dates, setDates] = useState<[Dayjs, Dayjs]>([dayjs(), dayjs()]);
   const [heureDebut, setHeureDebut] = useState<Dayjs>(dayjs('00:00', FMT_TIME));
   const [heureFin, setHeureFin]     = useState<Dayjs>(dayjs('23:59', FMT_TIME));
   const [repasType, setRepasType]   = useState<'PlatChaud' | 'Sandwich' | undefined>(undefined);
-  const [siteId, setSiteId]         = useState<string | undefined>(undefined);
+  const [siteId, setSiteId]         = useState<string | undefined>(
+    role !== 'AdminSEBN' ? (authSiteId ?? undefined) : undefined
+  );
   const [matricule, setMatricule]   = useState<string | undefined>(undefined);
 
   const { data: sites = [] } = useQuery({
