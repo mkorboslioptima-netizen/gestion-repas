@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Read(//f/gestion-repas/**)",
+      "Bash(openspec new *)",
+      "Bash(openspec status *)",
+      "Bash(openspec instructions *)",
+      "Bash(npx tsc *)",
+      "Bash(dotnet build *)",
+      "Bash(xargs grep *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['outputPath']\\); print\\(d['template']\\)\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(a['id'],a['status']\\) for a in d['artifacts']]\")"
     ]
   }
 }

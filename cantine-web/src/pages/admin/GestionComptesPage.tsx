@@ -15,11 +15,6 @@ const ROLES = [
   { label: 'Prestataire', value: 'Prestataire' },
 ];
 
-const ROLE_COLORS: Record<string, string> = {
-  AdminSEBN: 'blue',
-  ResponsableCantine: 'green',
-  Prestataire: 'purple',
-};
 
 export default function GestionComptesPage() {
   const qc = useQueryClient();

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Text.Json;
 using Cantine.Core.DTOs;
 using Cantine.Core.Enums;
@@ -241,6 +242,8 @@ public class RepasController : ControllerBase
     [HttpGet("flux")]
     public async Task GetFlux(CancellationToken ct)
     {
+        var userSiteId = User.FindFirstValue("siteId");
+
         Response.Headers.Append("Content-Type", "text/event-stream");
         Response.Headers.Append("Cache-Control", "no-cache");
         Response.Headers.Append("X-Accel-Buffering", "no");
@@ -265,6 +268,8 @@ public class RepasController : ControllerBase
             foreach (var passage in nouveaux)
             {
                 lastId = passage.Id;
+                if (userSiteId != null && passage.SiteId != userSiteId)
+                    continue;
                 var json = JsonSerializer.Serialize(passage, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase

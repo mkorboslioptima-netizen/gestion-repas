@@ -9,7 +9,6 @@ import dayjs from 'dayjs';
 import {
   getHistoriqueJour, getStatsJour, getExportExcel, getExportGlobal, type PassageDto,
 } from '../api/repas';
-import { getCurrentShift } from '../api/shifts';
 import KpiCard from '../components/KpiCard';
 import RoleGate from '../components/RoleGate';
 import DashboardFilters, { type FiltreState } from '../components/DashboardFilters';
@@ -99,12 +98,6 @@ export default function DashboardPage() {
   }), [filtre.dateDebut, filtre.dateFin, filtre.heureDebut, filtre.heureFin, filtre.siteId, filtre.repasType]);
 
   const sseActif = filtreIsToday(filtre);
-
-  const { data: currentShift } = useQuery({
-    queryKey: ['shift-current'],
-    queryFn: () => getCurrentShift(),
-    refetchInterval: 60_000,
-  });
 
   const { data: stats = [] } = useQuery({
     queryKey: ['repas-stats-jour', filtreParams],
@@ -200,13 +193,10 @@ export default function DashboardPage() {
   const totalPassages = stats.reduce((s, x) => s + x.totalPassages, 0);
   const totalPlatChaud = stats.reduce((s, x) => s + x.platChaud, 0);
   const totalSandwich  = stats.reduce((s, x) => s + x.sandwich, 0);
-  const totalQuota     = stats.reduce((s, x) => s + x.quotaAtteint, 0);
 
   const hierPassages  = statsHier.reduce((s, x) => s + x.totalPassages, 0);
   const hierPlatChaud = statsHier.reduce((s, x) => s + x.platChaud, 0);
   const hierSandwich  = statsHier.reduce((s, x) => s + x.sandwich, 0);
-  const hierQuota     = statsHier.reduce((s, x) => s + x.quotaAtteint, 0);
-
   function calcTrend(today: number, hier: number): number | null {
     if (statsHier.length === 0) return null;
     if (hier === 0) return today > 0 ? 100 : null;
@@ -216,8 +206,6 @@ export default function DashboardPage() {
   const trendPassages  = calcTrend(totalPassages, hierPassages);
   const trendPlatChaud = calcTrend(totalPlatChaud, hierPlatChaud);
   const trendSandwich  = calcTrend(totalSandwich, hierSandwich);
-  const trendQuota     = calcTrend(totalQuota, hierQuota);
-
   // filteredFeed : pour le feed en direct uniquement (SSE ou historique)
   const filteredFeed = useMemo(() => {
     let result = feedPassages;
@@ -270,29 +258,6 @@ export default function DashboardPage() {
 
   return (
     <div style={{ padding: 18 }}>
-
-      {/* Badge shift actif */}
-      <div style={{ marginBottom: 12 }}>
-        {currentShift ? (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: '#f0fdf4', border: '1px solid #86efac',
-            borderRadius: 20, padding: '4px 14px', fontSize: 13, fontWeight: 500, color: '#166534',
-          }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-            {currentShift.nom} — {currentShift.heureDebut.slice(0, 5)}–{currentShift.heureFin.slice(0, 5)}
-          </span>
-        ) : (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: '#fff7ed', border: '1px solid #fdba74',
-            borderRadius: 20, padding: '4px 14px', fontSize: 13, fontWeight: 500, color: '#9a3412',
-          }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
-            Hors créneau — aucun repas servi
-          </span>
-        )}
-      </div>
 
       {/* Panneau filtres */}
       <DashboardFilters onApply={setFiltre} />

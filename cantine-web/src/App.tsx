@@ -13,6 +13,7 @@ import SitesPage from './pages/admin/SitesPage';
 import EmployesPage from './pages/admin/EmployesPage';
 import ImprimantesPage from './pages/admin/ImprimantesPage';
 import SupervisionPage from './pages/admin/SupervisionPage';
+import LiveSupervisionPage from './pages/LiveSupervisionPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import GestionComptesPage from './pages/admin/GestionComptesPage';
@@ -33,13 +34,13 @@ const useDarkMode = () => useContext(DarkModeContext);
 // ── Mapping route → titre page ────────────────────────────────────────────
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Tableau de bord',
+  '/supervision': 'Supervision en direct',
   '/admin/lecteurs': 'Lecteurs',
   '/admin/employes': 'Employés',
   '/admin/sites': 'Sites',
   '/admin/comptes': 'Gestion des comptes',
   '/admin/imprimantes': 'Imprimantes',
-  '/admin/shifts': 'Shifts — Créneaux horaires',
-  '/admin/supervision': 'Supervision',
+  '/admin/supervision': 'Supervision équipements',
 };
 
 // ── Header bar ─────────────────────────────────────────────────────────────
@@ -116,6 +117,10 @@ function Sidebar() {
           <NavLink to="/" end className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
             <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
             Tableau de bord
+          </NavLink>
+          <NavLink to="/supervision" className={({ isActive }) => 'sb-item' + (isActive ? ' active' : '')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Supervision
           </NavLink>
         </div>
 
@@ -198,6 +203,14 @@ function AuthenticatedLayout() {
         <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
+            <Route
+              path="/supervision"
+              element={
+                <PrivateRoute allowed={['AdminSEBN', 'ResponsableCantine', 'Prestataire']}>
+                  <LiveSupervisionPage />
+                </PrivateRoute>
+              }
+            />
             <Route path="/admin/lecteurs" element={<LecteursPage />} />
             <Route
               path="/admin/employes"

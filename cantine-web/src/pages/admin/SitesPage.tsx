@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Button, Col, Form, Input, InputNumber, Modal, Popconfirm,
   Row, Spin, Switch, Tag, message,
@@ -6,12 +6,11 @@ import {
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
   DatabaseOutlined, TeamOutlined, EyeInvisibleOutlined, EyeTwoTone,
-  SyncOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getSites, createSite, updateSite, deleteSite,
-  getMorphoConfig, updateMorphoConfig, syncSiteEmployees,
+  getMorphoConfig, updateMorphoConfig,
 } from '../../api/sites';
 import type { SiteDto, MorphoConfigDto } from '../../api/sites';
 
@@ -21,12 +20,15 @@ function MorphoModal({ site, onClose }: { site: SiteDto; onClose: () => void }) 
   const queryClient = useQueryClient();
   const [form] = Form.useForm<MorphoConfigDto>();
 
-  const { isLoading } = useQuery({
+  const { isLoading, data: morphoData } = useQuery({
     queryKey: ['morpho-config', site.siteId],
     queryFn: () => getMorphoConfig(site.siteId),
     retry: false,
-    onSuccess: (data: MorphoConfigDto) => form.setFieldsValue(data),
   });
+
+  useEffect(() => {
+    if (morphoData) form.setFieldsValue(morphoData);
+  }, [morphoData, form]);
 
   const saveMutation = useMutation({
     mutationFn: (values: MorphoConfigDto) =>
@@ -217,17 +219,6 @@ function SiteCard({ site, onEdit, onMorpho }: SiteCardProps) {
       message.error(err?.response?.data?.message ?? 'Impossible de supprimer ce site'),
   });
 
-  const syncMutation = useMutation({
-    mutationFn: () => syncSiteEmployees(site.siteId),
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['sites'] });
-      message.success(
-        `Synchronisation OK — ${res.importes} importés, ${res.misAJour} mis à jour, ${res.employeCount} actifs`,
-      );
-    },
-    onError: (err: { response?: { data?: { message?: string } } }) =>
-      message.error(err?.response?.data?.message ?? 'Erreur de synchronisation'),
-  });
 
   return (
     <div style={{

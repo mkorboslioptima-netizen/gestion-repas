@@ -336,39 +336,6 @@ namespace Cantine.Infrastructure.Data.Migrations
                     b.ToTable("UserAuditLogs");
                 });
 
-            modelBuilder.Entity("Cantine.Core.Entities.ShiftConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Actif")
-                        .HasColumnType("bit");
-
-                    b.Property<TimeOnly>("HeureDebut")
-                        .HasColumnType("time");
-
-                    b.Property<TimeOnly>("HeureFin")
-                        .HasColumnType("time");
-
-                    b.Property<string>("Nom")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ShiftConfigs");
-
-                    b.HasData(
-                        new { Id = 1, Actif = true,  HeureDebut = new TimeOnly(8,  0), HeureFin = new TimeOnly(12, 0), Nom = "Matin"          },
-                        new { Id = 2, Actif = true,  HeureDebut = new TimeOnly(12, 0), HeureFin = new TimeOnly(14, 0), Nom = "Administration"  },
-                        new { Id = 3, Actif = true,  HeureDebut = new TimeOnly(16, 0), HeureFin = new TimeOnly(21, 0), Nom = "Après-midi"      },
-                        new { Id = 4, Actif = false, HeureDebut = new TimeOnly(0,  0), HeureFin = new TimeOnly(4,  0),  Nom = "Nuit"           });
-                });
-
             modelBuilder.Entity("Cantine.Core.Entities.AppUser", b =>
                 {
                     b.HasOne("Cantine.Core.Entities.Site", "Site")

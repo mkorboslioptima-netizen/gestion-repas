@@ -9,11 +9,6 @@ using Cantine.TcpListener;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using QuestPDF.Infrastructure;
-
-// Licence QuestPDF (Community = gratuit pour usage non-commercial)
-QuestPDF.Settings.License = LicenseType.Community;
-
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddWindowsService(options =>
@@ -34,7 +29,6 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IMealLogRepository, MealLogRepository>();
 
 // Services métier (Scoped via scope factory dans le BackgroundService)
-builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IMealEligibilityService, MealEligibilityService>();
 builder.Services.AddScoped<IMorphoEmployeeImporter, MorphoEmployeeImporter>();
 builder.Services.AddScoped<IMorphoSyncService, MorphoSyncService>();

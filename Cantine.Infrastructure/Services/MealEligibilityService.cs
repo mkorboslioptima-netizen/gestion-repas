@@ -7,18 +7,15 @@ public class MealEligibilityService : IMealEligibilityService
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IMealLogRepository _mealLogRepository;
-    private readonly IShiftService _shiftService;
     private readonly ILogger<MealEligibilityService> _logger;
 
     public MealEligibilityService(
         IEmployeeRepository employeeRepository,
         IMealLogRepository mealLogRepository,
-        IShiftService shiftService,
         ILogger<MealEligibilityService> logger)
     {
         _employeeRepository = employeeRepository;
         _mealLogRepository = mealLogRepository;
-        _shiftService = shiftService;
         _logger = logger;
     }
 
@@ -46,14 +43,6 @@ public class MealEligibilityService : IMealEligibilityService
         {
             _logger.LogWarning("[Éligibilité] Refus — Quota journalier atteint pour {Matricule} ({Count}/{Max}) (site: {SiteId})",
                 matricule, count, employee.MaxMealsPerDay, siteId);
-            return false;
-        }
-
-        var currentShift = await _shiftService.GetCurrentAsync(timestamp);
-        if (currentShift is null)
-        {
-            _logger.LogWarning("[Éligibilité] Refus — Hors créneau horaire pour {Matricule} à {Heure} (site: {SiteId})",
-                matricule, timestamp.ToString("HH:mm"), siteId);
             return false;
         }
 
