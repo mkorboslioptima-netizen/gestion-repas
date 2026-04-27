@@ -177,7 +177,19 @@ public class MorphoListenerService : BackgroundService
         _logger.LogInformation("[MealLog] Ticket #{TicketNumber} — {Matricule} — {RepasType} — {Lecteur}",
             mealLog.TicketNumber, mealLog.Matricule, mealLog.RepasType, lecteur.Nom);
 
-        // 5. Impression ticket ESC/POS (échec non bloquant)
-        await _escPosService.PrintTicketAsync(mealLog, employee, lecteur);
+        // 5. Calcul du compteur de repas du jour pour le ticket
+        int mealNumberToday = 0;
+        try
+        {
+            mealNumberToday = await mealLogRepo.GetCountTodayBySiteAsync(
+                frame.Matricule, lecteur.SiteId, DateOnly.FromDateTime(frame.Timestamp));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MealLog] Impossible de calculer le compteur de repas pour {Matricule}", frame.Matricule);
+        }
+
+        // 6. Impression ticket ESC/POS (échec non bloquant)
+        await _escPosService.PrintTicketAsync(mealLog, employee, lecteur, mealNumberToday);
     }
 }

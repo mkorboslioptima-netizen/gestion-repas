@@ -24,7 +24,7 @@ public class PdfTicketService : IEscPosService
         _logger = logger;
     }
 
-    public Task PrintTicketAsync(MealLog mealLog, Employee employee, Lecteur lecteur)
+    public Task PrintTicketAsync(MealLog mealLog, Employee employee, Lecteur lecteur, int mealNumberToday)
     {
         try
         {
