@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Badge, Card, Col, Row, Statistic, Tag, Typography } from 'antd';
+import { Badge, Card, Col, Row, Statistic, Table, Tag, Typography } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { useQuery } from '@tanstack/react-query';
 import { getStatsJour, type PassageDto } from '../api/repas';
 import dayjs from 'dayjs';
@@ -75,17 +76,64 @@ export default function LiveSupervisionPage() {
     };
   }, [refetchStats, initCounters]);
 
-  const repasTypeLabel = (type: string) =>
-    type === 'PlatChaud' ? 'Plat chaud' : type === 'Sandwich' ? 'Sandwich' : type;
-
-  const repasTypeColor = (type: string) =>
-    type === 'PlatChaud' ? 'blue' : type === 'Sandwich' ? 'purple' : 'default';
+  const columns: ColumnsType<PassageDto> = [
+    {
+      title: 'Heure',
+      dataIndex: 'timestamp',
+      key: 'timestamp',
+      width: 80,
+      render: (v: string) => dayjs(v).format('HH:mm:ss'),
+    },
+    {
+      title: 'Nom',
+      dataIndex: 'nom',
+      key: 'nom',
+      width: 130,
+    },
+    {
+      title: 'Prénom',
+      dataIndex: 'prenom',
+      key: 'prenom',
+      width: 130,
+    },
+    {
+      title: 'Matricule',
+      dataIndex: 'matricule',
+      key: 'matricule',
+      width: 110,
+    },
+    {
+      title: 'Type repas',
+      dataIndex: 'repasType',
+      key: 'repasType',
+      width: 120,
+      render: (v: string) => (
+        <Tag color={v === 'PlatChaud' ? 'blue' : v === 'Sandwich' ? 'purple' : 'default'}>
+          {v === 'PlatChaud' ? 'Plat chaud' : v === 'Sandwich' ? 'Sandwich' : v}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Lecteur',
+      dataIndex: 'lecteurNom',
+      key: 'lecteurNom',
+      width: 130,
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Site',
+      dataIndex: 'siteId',
+      key: 'siteId',
+      width: 90,
+      render: (v: string | null) => v ?? '—',
+    },
+  ];
 
   return (
     <div style={{ padding: 18 }}>
       {/* En-tête */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Supervision en direct</span>
+        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Flux en direct</span>
         {sseStatus === 'live' && (
           <Badge color="green" text={<Text style={{ fontSize: 12, color: '#166534', fontWeight: 500 }}>En direct</Text>} />
         )}
@@ -116,48 +164,24 @@ export default function LiveSupervisionPage() {
         </Col>
       </Row>
 
-      {/* Feed live */}
+      {/* Tableau des 50 derniers pointages */}
+      <style>{`
+        .passage-row-latest td { background-color: #eff6ff !important; font-weight: 500; }
+        [data-theme="dark"] .passage-row-latest td { background-color: #1e3a5f !important; }
+      `}</style>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--text2)' }}>
-        Passages récents ({passages.length > 0 ? `${passages.length} affichés` : 'en attente...'})
+        Derniers pointages ({passages.length > 0 ? `${passages.length} affichés` : 'en attente...'})
       </div>
-
-      {passages.length === 0 ? (
-        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text2)', fontSize: 13 }}>
-          En attente des passages biométriques...
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {passages.map((p) => (
-            <Card
-              key={`${p.id}-${p.timestamp}`}
-              size="small"
-              style={{
-                borderLeft: `4px solid ${p.repasType === 'PlatChaud' ? '#2563eb' : '#7c3aed'}`,
-                borderRadius: 8,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <Text strong style={{ fontSize: 14 }}>{p.prenom} {p.nom}</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>{p.matricule}</Text>
-                  <Tag color={repasTypeColor(p.repasType)} style={{ fontSize: 11, margin: 0 }}>
-                    {repasTypeLabel(p.repasType)}
-                  </Tag>
-                  {p.lecteurNom && (
-                    <Text type="secondary" style={{ fontSize: 11 }}>{p.lecteurNom}</Text>
-                  )}
-                  {p.siteId && (
-                    <Text type="secondary" style={{ fontSize: 11 }}>{p.siteId}</Text>
-                  )}
-                </div>
-                <Text style={{ fontSize: 12, color: 'var(--text2)', whiteSpace: 'nowrap' }}>
-                  {dayjs(p.timestamp).format('HH:mm:ss')}
-                </Text>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+      <Table
+        dataSource={passages}
+        columns={columns}
+        rowKey={p => `${p.id}-${p.timestamp}`}
+        size="small"
+        pagination={false}
+        scroll={{ y: 420 }}
+        locale={{ emptyText: 'En attente des passages biométriques...' }}
+        rowClassName={(_, index) => index === 0 ? 'passage-row-latest' : ''}
+      />
     </div>
   );
 }
