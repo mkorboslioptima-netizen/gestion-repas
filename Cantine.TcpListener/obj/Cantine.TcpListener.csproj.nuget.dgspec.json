@@ -10,11 +10,15 @@
         "projectUniqueName": "F:\\gestion-repas\\Cantine.Core\\Cantine.Core.csproj",
         "projectName": "Cantine.Core",
         "projectPath": "F:\\gestion-repas\\Cantine.Core\\Cantine.Core.csproj",
-        "packagesPath": "C:\\Users\\technique2\\.nuget\\packages\\",
+        "packagesPath": "D:\\NuGetCache",
         "outputPath": "F:\\gestion-repas\\Cantine.Core\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\technique2\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\assistance\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -40,7 +44,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -61,7 +65,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -345,11 +349,15 @@
         "projectUniqueName": "F:\\gestion-repas\\Cantine.Infrastructure\\Cantine.Infrastructure.csproj",
         "projectName": "Cantine.Infrastructure",
         "projectPath": "F:\\gestion-repas\\Cantine.Infrastructure\\Cantine.Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\technique2\\.nuget\\packages\\",
+        "packagesPath": "D:\\NuGetCache",
         "outputPath": "F:\\gestion-repas\\Cantine.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\technique2\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\assistance\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -379,7 +387,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -432,7 +440,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -716,11 +724,15 @@
         "projectUniqueName": "F:\\gestion-repas\\Cantine.TcpListener\\Cantine.TcpListener.csproj",
         "projectName": "Cantine.TcpListener",
         "projectPath": "F:\\gestion-repas\\Cantine.TcpListener\\Cantine.TcpListener.csproj",
-        "packagesPath": "C:\\Users\\technique2\\.nuget\\packages\\",
+        "packagesPath": "D:\\NuGetCache",
         "outputPath": "F:\\gestion-repas\\Cantine.TcpListener\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\technique2\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\assistance\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -753,7 +765,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -788,7 +800,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

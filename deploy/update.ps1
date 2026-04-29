@@ -28,9 +28,9 @@
     .\update.ps1 -SkipApi -SkipTcp  # front seulement
 #>
 param(
-    [string] $ApiPath        = "C:\inetpub\cantine-api",
-    [string] $FrontPath      = "C:\inetpub\cantine-front",
-    [string] $TcpServicePath = "C:\Services\CantineTcpListener",
+    [string] $ApiPath        = "C:\Cantine Sebn\deploy\api",
+    [string] $FrontPath      = "C:\Cantine Sebn\deploy\front",
+    [string] $TcpServicePath = "C:\Cantine Sebn\deploy\tcplistener",
     [switch] $SkipFront,
     [switch] $SkipApi,
     [switch] $SkipTcp
@@ -51,9 +51,9 @@ Import-Module WebAdministration
 Write-Step "1. Verification de l'installation existante"
 # ---------------------------------------------------------------------------
 
-if (-not (Test-Path $ApiPath))  { throw "Dossier API introuvable : $ApiPath — lancez install.ps1 d'abord." }
-if (-not (Test-Path $FrontPath)) { throw "Dossier front introuvable : $FrontPath — lancez install.ps1 d'abord." }
-if (-not (Test-Path $TcpServicePath)) { throw "Dossier TcpListener introuvable : $TcpServicePath — lancez install.ps1 d'abord." }
+if (-not (Test-Path $ApiPath))  { throw "Dossier API introuvable : $ApiPath - lancez install.ps1 d'abord." }
+if (-not (Test-Path $FrontPath)) { throw "Dossier front introuvable : $FrontPath - lancez install.ps1 d'abord." }
+if (-not (Test-Path $TcpServicePath)) { throw "Dossier TcpListener introuvable : $TcpServicePath - lancez install.ps1 d'abord." }
 Write-OK "Installation existante detectee"
 
 # ---------------------------------------------------------------------------

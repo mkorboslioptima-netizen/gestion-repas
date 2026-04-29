@@ -84,6 +84,18 @@ public class SitesController : ControllerBase
         if (hasLogs)
             return BadRequest(new { message = "Impossible de supprimer un site qui a des passages enregistrés." });
 
+        var hasLecteurs = await _context.Lecteurs.AnyAsync(l => l.SiteId == siteId);
+        if (hasLecteurs)
+            return BadRequest(new { message = "Impossible de supprimer un site qui contient des lecteurs." });
+
+        // Supprimer les données liées sans contrainte bloquante
+        var syncLogs = _context.SyncLogs.Where(l => l.SiteId == siteId);
+        _context.SyncLogs.RemoveRange(syncLogs);
+
+        var morphoConfig = await _context.MorphoConfigs.FindAsync(siteId);
+        if (morphoConfig is not null)
+            _context.MorphoConfigs.Remove(morphoConfig);
+
         _context.Sites.Remove(site);
         await _context.SaveChangesAsync();
         return NoContent();
