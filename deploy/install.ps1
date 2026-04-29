@@ -25,9 +25,9 @@
 param(
     [int]    $ApiPort        = 5000,
     [int]    $FrontPort      = 80,
-    [string] $ApiPath        = "C:\inetpub\cantine-api",
-    [string] $FrontPath      = "C:\inetpub\cantine-front",
-    [string] $TcpServicePath = "C:\Services\CantineTcpListener"
+    [string] $ApiPath        = "C:\Cantine Sebn\deploy\api",
+    [string] $FrontPath      = "C:\Cantine Sebn\deploy\front",
+    [string] $TcpServicePath = "C:\Cantine Sebn\deploy\tcplistener"
 )
 
 Set-StrictMode -Version Latest

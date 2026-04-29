@@ -54,6 +54,12 @@ public class MorphoEmployeeImporter : IMorphoEmployeeImporter
 
         await reader.CloseAsync();
 
+        // Dédoublonnage des matricules (Morpho peut retourner des doublons)
+        rows = rows
+            .GroupBy(r => r.Matricule, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+
         // 2.3 — Sécurité : ne jamais désactiver si la liste est vide
         if (desactiverAbsents && rows.Count == 0)
         {
@@ -63,28 +69,16 @@ public class MorphoEmployeeImporter : IMorphoEmployeeImporter
 
         var matriculesMorpho = rows.Select(r => r.Matricule).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        // Charger tous les employés du site en une seule requête pour éviter les conflits de tracking
+        var existingMap = await _context.Employees
+            .Where(e => e.SiteId == siteId)
+            .ToDictionaryAsync(e => e.Matricule, StringComparer.OrdinalIgnoreCase);
+
         // Upsert
         foreach (var (matricule, nom, prenom) in rows)
         {
-            var existing = await _context.Employees
-                .FirstOrDefaultAsync(e => e.SiteId == siteId && e.Matricule == matricule);
-
-            if (existing is null)
+            if (existingMap.TryGetValue(matricule, out var existing))
             {
-                _context.Employees.Add(new Employee
-                {
-                    SiteId = siteId,
-                    Matricule = matricule,
-                    Nom = nom,
-                    Prenom = prenom,
-                    MaxMealsPerDay = 1,
-                    Actif = true
-                });
-                result.Importes++;
-            }
-            else
-            {
-                // Réactiver si désactivé et de nouveau présent dans Morpho
                 bool changed = existing.Nom != nom || existing.Prenom != prenom || !existing.Actif;
                 if (changed)
                 {
@@ -98,16 +92,27 @@ public class MorphoEmployeeImporter : IMorphoEmployeeImporter
                     result.Ignores++;
                 }
             }
+            else
+            {
+                var newEmployee = new Employee
+                {
+                    SiteId = siteId,
+                    Matricule = matricule,
+                    Nom = nom,
+                    Prenom = prenom,
+                    MaxMealsPerDay = 1,
+                    Actif = true
+                };
+                _context.Employees.Add(newEmployee);
+                existingMap[matricule] = newEmployee;
+                result.Importes++;
+            }
         }
 
         // 2.4 — Désactivation des absents (synchro auto uniquement)
         if (desactiverAbsents)
         {
-            var absents = await _context.Employees
-                .Where(e => e.SiteId == siteId && e.Actif)
-                .ToListAsync();
-
-            foreach (var absent in absents.Where(e => !matriculesMorpho.Contains(e.Matricule)))
+            foreach (var absent in existingMap.Values.Where(e => e.Actif && !matriculesMorpho.Contains(e.Matricule)))
             {
                 absent.Actif = false;
                 result.Desactives++;

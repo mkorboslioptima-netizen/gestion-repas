@@ -4,6 +4,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Cantine.Core.Entities;
 using Cantine.Core.Interfaces;
+using Cantine.Infrastructure.Data;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -126,6 +129,7 @@ public class MorphoListenerService : BackgroundService
     private async Task HandleFrameAsync(Core.DTOs.MorphoFrame frame, string remoteIp, CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CantineDbContext>();
         var lecteurRepo = scope.ServiceProvider.GetRequiredService<ILecteurRepository>();
         var employeeRepo = scope.ServiceProvider.GetRequiredService<IEmployeeRepository>();
         var mealLogRepo = scope.ServiceProvider.GetRequiredService<IMealLogRepository>();
@@ -147,27 +151,30 @@ public class MorphoListenerService : BackgroundService
             return;
         }
 
-        // 2. Vérification éligibilité (scoped au site du lecteur)
-        bool eligible = await eligibilityService.IsEligibleAsync(frame.Matricule, lecteur.SiteId, frame.Timestamp);
+        // 2. Résolution Wiegand → EMPLOYEEID si la trame contient un Wiegand value
+        var matricule = await ResolveMatriculeAsync(frame.Matricule, lecteur.SiteId, db, ct);
+
+        // 3. Vérification éligibilité (scoped au site du lecteur)
+        bool eligible = await eligibilityService.IsEligibleAsync(matricule, lecteur.SiteId, frame.Timestamp);
         if (!eligible)
         {
-            _logger.LogDebug("[Trame] Employé {Matricule} non éligible sur site {SiteId}", frame.Matricule, lecteur.SiteId);
+            _logger.LogDebug("[Trame] Employé {Matricule} non éligible sur site {SiteId}", matricule, lecteur.SiteId);
             return;
         }
 
-        // 3. Récupération de l'employé (pour le ticket)
-        var employee = await employeeRepo.GetByMatriculeAsync(frame.Matricule);
+        // 4. Récupération de l'employé (pour le ticket)
+        var employee = await employeeRepo.GetByMatriculeAsync(matricule);
         if (employee is null)
         {
-            _logger.LogWarning("[Trame] Employé {Matricule} introuvable", frame.Matricule);
+            _logger.LogWarning("[Trame] Employé {Matricule} introuvable", matricule);
             return;
         }
 
-        // 4. Enregistrement du MealLog
+        // 5. Enregistrement du MealLog
         var mealLog = new MealLog
         {
             SiteId = lecteur.SiteId,
-            Matricule = frame.Matricule,
+            Matricule = matricule,
             LecteurId = lecteur.Id,
             Timestamp = frame.Timestamp,
             RepasType = frame.RepasType
@@ -177,19 +184,58 @@ public class MorphoListenerService : BackgroundService
         _logger.LogInformation("[MealLog] Ticket #{TicketNumber} — {Matricule} — {RepasType} — {Lecteur}",
             mealLog.TicketNumber, mealLog.Matricule, mealLog.RepasType, lecteur.Nom);
 
-        // 5. Calcul du compteur de repas du jour pour le ticket
+        // 6. Calcul du compteur de repas du jour pour le ticket
         int mealNumberToday = 0;
         try
         {
             mealNumberToday = await mealLogRepo.GetCountTodayBySiteAsync(
-                frame.Matricule, lecteur.SiteId, DateOnly.FromDateTime(frame.Timestamp));
+                matricule, lecteur.SiteId, DateOnly.FromDateTime(frame.Timestamp));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[MealLog] Impossible de calculer le compteur de repas pour {Matricule}", frame.Matricule);
+            _logger.LogWarning(ex, "[MealLog] Impossible de calculer le compteur de repas pour {Matricule}", matricule);
         }
 
-        // 6. Impression ticket ESC/POS (échec non bloquant)
+        // 7. Impression ticket ESC/POS (échec non bloquant)
         await _escPosService.PrintTicketAsync(mealLog, employee, lecteur, mealNumberToday);
+    }
+
+    private async Task<string> ResolveMatriculeAsync(string rawValue, string siteId, CantineDbContext db, CancellationToken ct)
+    {
+        var config = await db.MorphoConfigs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.SiteId == siteId, ct);
+
+        if (config is null)
+            return rawValue;
+
+        try
+        {
+            await using var connection = new SqlConnection(config.ConnectionString);
+            await connection.OpenAsync(ct);
+
+            const string sql = """
+                SELECT u.EMPLOYEEID
+                FROM User_ u
+                JOIN WiegandUserValue w ON w.OWNERID = u.ID
+                WHERE w.VALUE = @value
+                """;
+
+            await using var cmd = new SqlCommand(sql, connection) { CommandTimeout = config.CommandTimeout };
+            cmd.Parameters.AddWithValue("@value", rawValue);
+
+            var result = await cmd.ExecuteScalarAsync(ct);
+            if (result is string employeeId && !string.IsNullOrWhiteSpace(employeeId))
+            {
+                _logger.LogDebug("[Wiegand] {Wiegand} → EMPLOYEEID {Matricule}", rawValue, employeeId.Trim());
+                return employeeId.Trim();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[Wiegand] Échec résolution {Wiegand} — utilisation valeur brute", rawValue);
+        }
+
+        return rawValue;
     }
 }

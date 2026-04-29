@@ -37,6 +37,9 @@ builder.Services.AddScoped<IMorphoSyncService, MorphoSyncService>();
 builder.Services.AddSingleton<IMorphoFrameParser, MorphoFrameParser>();
 builder.Services.AddSingleton<ISupervisionStore, SupervisionStore>();
 
+// Supervision
+builder.Services.AddScoped<ISupervisionChecker, SupervisionChecker>();
+
 // Impression : mode Pdf (dev) ou EscPos (prod) selon appsettings.json > Printing:Mode
 builder.Services.Configure<PrintingOptions>(
     builder.Configuration.GetSection(PrintingOptions.SectionName));

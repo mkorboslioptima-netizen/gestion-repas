@@ -67,7 +67,10 @@ builder.Services.AddCors(options =>
                   "http://localhost:5174",
                   "http://localhost:5175",
                   "http://localhost:5176",
-                  "http://10.9.204.28")
+                  "http://10.9.204.28",
+                  "http://10.9.204.28:80",
+                  "http://10.9.204.28:8080",
+                  "http://10.9.204.28:3000")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
