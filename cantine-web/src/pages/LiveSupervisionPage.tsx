@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Badge, Card, Col, Row, Statistic, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useQuery } from '@tanstack/react-query';
-import { getStatsJour, type PassageDto } from '../api/repas';
+import { getHistoriqueJour, getStatsJour, type PassageDto } from '../api/repas';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -16,6 +16,15 @@ export default function LiveSupervisionPage() {
   const [counters, setCounters] = useState({ total: 0, platChaud: 0, sandwich: 0 });
   const [sseStatus, setSseStatus] = useState<SseStatus>('connecting');
   const esRef = useRef<EventSource | null>(null);
+  const knownIds = useRef<Set<number>>(new Set());
+
+  // Charger les 50 derniers pointages du jour au montage
+  useEffect(() => {
+    getHistoriqueJour(MAX_FEED).then(data => {
+      setPassages(data);
+      data.forEach(p => knownIds.current.add(p.id));
+    }).catch(() => {/* silencieux — SSE prendra le relais */});
+  }, []);
 
   const { data: statsJour = [], refetch: refetchStats } = useQuery({
     queryKey: ['supervision-stats-jour'],
@@ -38,7 +47,8 @@ export default function LiveSupervisionPage() {
 
     function connect() {
       setSseStatus('connecting');
-      const es = new EventSource(`${API_BASE}/api/repas/flux`);
+      const token = localStorage.getItem('token') ?? sessionStorage.getItem('token') ?? '';
+      const es = new EventSource(`${API_BASE}/api/repas/flux?access_token=${token}`);
       esRef.current = es;
 
       es.onopen = () => setSseStatus('live');
@@ -46,6 +56,8 @@ export default function LiveSupervisionPage() {
       es.onmessage = (event) => {
         try {
           const p: PassageDto = JSON.parse(event.data);
+          if (knownIds.current.has(p.id)) return;
+          knownIds.current.add(p.id);
           setPassages(prev => [p, ...prev].slice(0, MAX_FEED));
           setCounters(prev => ({
             total: prev.total + 1,
