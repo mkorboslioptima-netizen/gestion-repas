@@ -159,6 +159,22 @@ public class EmployesController : ControllerBase
             fileName);
     }
 
+    // PATCH /api/employes/{matricule}/quota
+    [HttpPatch("{matricule}/quota")]
+    public async Task<IActionResult> UpdateQuota(string matricule, [FromBody] UpdateQuotaDto dto)
+    {
+        if (dto.MaxMealsPerDay < 1 || dto.MaxMealsPerDay > 10)
+            return BadRequest(new { message = "Quota invalide (1–10)" });
+
+        var employee = await _context.Employees
+            .FirstOrDefaultAsync(e => e.Matricule == matricule);
+        if (employee is null) return NotFound();
+
+        employee.MaxMealsPerDay = dto.MaxMealsPerDay;
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
     // POST /api/employes/sync-morpho
     // Déclenche la synchro de tous les sites en arrière-plan, retourne 202 immédiatement
     [HttpPost("sync-morpho")]

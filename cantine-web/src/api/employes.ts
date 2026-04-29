@@ -59,6 +59,10 @@ export interface ExportEmployesParams {
   maxMealsPerDay?: number;
 }
 
+export async function updateQuota(matricule: string, maxMealsPerDay: number): Promise<void> {
+  await apiClient.patch(`/api/employes/${matricule}/quota`, { maxMealsPerDay });
+}
+
 export async function getExportEmployes(siteId: string, filtres?: ExportEmployesParams): Promise<Blob> {
   const { data } = await apiClient.get<Blob>('/api/employes/export', {
     params: { siteId, ...filtres },

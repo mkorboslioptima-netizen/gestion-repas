@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  Button, Card, Col, Input, Row, Select, Space,
+  Button, Card, Col, Input, InputNumber, Row, Select, Space,
   Statistic, Table, Tag, Typography, notification,
 } from 'antd';
 import { DownloadOutlined, ImportOutlined, TeamOutlined } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/fr';
@@ -14,6 +14,7 @@ import {
   getEmployes,
   getExportEmployes,
   importDepuisMorpho,
+  updateQuota,
   type EmployeeDto,
   type EmployeeSiteStatsDto,
 } from '../../api/employes';
@@ -72,19 +73,6 @@ function SiteStatCard({ stat }: { stat: EmployeeSiteStatsDto }) {
   );
 }
 
-// ─── Tableau des employés ───────────────────────────────────────────────────
-
-const COLONNES = [
-  { title: 'Matricule', dataIndex: 'matricule', key: 'matricule', sorter: (a: EmployeeDto, b: EmployeeDto) => a.matricule.localeCompare(b.matricule) },
-  { title: 'Nom', dataIndex: 'nom', key: 'nom', sorter: (a: EmployeeDto, b: EmployeeDto) => a.nom.localeCompare(b.nom) },
-  { title: 'Prénom', dataIndex: 'prenom', key: 'prenom', sorter: (a: EmployeeDto, b: EmployeeDto) => a.prenom.localeCompare(b.prenom) },
-  {
-    title: 'Statut', dataIndex: 'actif', key: 'actif',
-    render: (actif: boolean) => <Tag color={actif ? 'green' : 'default'}>{actif ? 'Actif' : 'Inactif'}</Tag>,
-  },
-  { title: 'Quota', dataIndex: 'maxMealsPerDay', key: 'maxMealsPerDay', render: (v: number) => `${v} repas/j` },
-];
-
 // ─── Page principale ────────────────────────────────────────────────────────
 
 export default function EmployesPage() {
@@ -99,6 +87,22 @@ export default function EmployesPage() {
   const [filtreStatut, setFiltreStatut] = useState<'tous' | 'actif' | 'inactif'>('tous');
   const [filtreQuota, setFiltreQuota] = useState<'tous' | '1' | '2'>('tous');
   const [exportLoading, setExportLoading] = useState(false);
+  const [editingQuota, setEditingQuota] = useState<string | null>(null);
+  const [quotaValue, setQuotaValue] = useState<number>(1);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const quotaMutation = useMutation({
+    mutationFn: ({ matricule, quota }: { matricule: string; quota: number }) =>
+      updateQuota(matricule, quota),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employes', tableSiteId] });
+      setEditingQuota(null);
+    },
+    onError: () => {
+      notification.error({ message: 'Erreur lors de la mise à jour du quota' });
+      setEditingQuota(null);
+    },
+  });
 
   const { data: sites = [] } = useQuery({
     queryKey: ['sites'],
@@ -200,6 +204,63 @@ export default function EmployesPage() {
       setLoadingImport(false);
     }
   };
+
+  const colonnes = [
+    { title: 'Matricule', dataIndex: 'matricule', key: 'matricule', sorter: (a: EmployeeDto, b: EmployeeDto) => a.matricule.localeCompare(b.matricule) },
+    { title: 'Nom', dataIndex: 'nom', key: 'nom', sorter: (a: EmployeeDto, b: EmployeeDto) => a.nom.localeCompare(b.nom) },
+    { title: 'Prénom', dataIndex: 'prenom', key: 'prenom', sorter: (a: EmployeeDto, b: EmployeeDto) => a.prenom.localeCompare(b.prenom) },
+    {
+      title: 'Statut', dataIndex: 'actif', key: 'actif',
+      render: (actif: boolean) => <Tag color={actif ? 'green' : 'default'}>{actif ? 'Actif' : 'Inactif'}</Tag>,
+    },
+    {
+      title: 'Quota',
+      dataIndex: 'maxMealsPerDay',
+      key: 'maxMealsPerDay',
+      width: 140,
+      render: (v: number, record: EmployeeDto) => {
+        if (editingQuota === record.matricule) {
+          return (
+            <InputNumber
+              ref={inputRef}
+              min={1}
+              max={10}
+              value={quotaValue}
+              size="small"
+              style={{ width: 90 }}
+              onChange={val => setQuotaValue(val ?? 1)}
+              onPressEnter={() => {
+                if (quotaValue !== v)
+                  quotaMutation.mutate({ matricule: record.matricule, quota: quotaValue });
+                else
+                  setEditingQuota(null);
+              }}
+              onBlur={() => {
+                if (quotaValue !== v)
+                  quotaMutation.mutate({ matricule: record.matricule, quota: quotaValue });
+                else
+                  setEditingQuota(null);
+              }}
+              onKeyDown={e => { if (e.key === 'Escape') setEditingQuota(null); }}
+              autoFocus
+            />
+          );
+        }
+        return (
+          <span
+            style={{ cursor: 'pointer', borderBottom: '1px dashed #aaa', paddingBottom: 1 }}
+            onClick={() => {
+              setQuotaValue(v);
+              setEditingQuota(record.matricule);
+            }}
+            title="Cliquer pour modifier"
+          >
+            {v} repas/j
+          </span>
+        );
+      },
+    },
+  ];
 
   return (
     <div style={{ padding: 18 }}>
@@ -320,7 +381,7 @@ export default function EmployesPage() {
 
       <Table
         dataSource={employesFiltres}
-        columns={COLONNES}
+        columns={colonnes}
         rowKey="matricule"
         loading={employesLoading}
         pagination={{ pageSize: 20, showSizeChanger: false }}

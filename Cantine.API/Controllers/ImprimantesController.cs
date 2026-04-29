@@ -53,7 +53,8 @@ public class ImprimantesController : ControllerBase
     [HttpPost("discover")]
     public async Task<IActionResult> Discover()
     {
-        var results = await _discoveryService.DiscoverAsync();
+        var (results, subnetCount) = await _discoveryService.DiscoverAsync();
+        Response.Headers["X-Scan-Subnets"] = subnetCount.ToString();
         return Ok(results);
     }
 }

@@ -125,9 +125,12 @@ export default function LoginPage() {
         </form>
 
         {/* Créé par OPTIMA */}
-        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--text2)' }}>Créé par</span>
-          <img src="/optima.jpg" style={{ height: 42, objectFit: 'contain' }} alt="OPTIMA" />
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--text2)' }}>Créé par</span>
+            <img src="/optima.jpg" style={{ height: 42, objectFit: 'contain' }} alt="OPTIMA" />
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--text2)' }}>© 2026</span>
         </div>
       </div>
     </div>

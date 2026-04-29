@@ -15,6 +15,8 @@ interface ImprimanteDiscoveredDto {
   adresseIP: string;
   nomImprimante: string | null;
   source: 'windows' | 'reseau';
+  sousReseau?: string;
+  port?: number;
 }
 
 export default function ImprimantesPage() {
@@ -25,6 +27,7 @@ export default function ImprimantesPage() {
   const [discovering, setDiscovering] = useState(false);
   const [discovered, setDiscovered] = useState<ImprimanteDiscoveredDto[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [subnetCount, setSubnetCount] = useState(0);
   const [form] = Form.useForm();
 
   const { data: imprimantes = [], isLoading } = useQuery({
@@ -90,10 +93,13 @@ export default function ImprimantesPage() {
   const handleDiscover = async () => {
     setDiscovering(true);
     try {
-      const { data } = await apiClient.post<ImprimanteDiscoveredDto[]>('/api/imprimantes/discover');
-      setDiscovered(data);
+      const res = await apiClient.post<ImprimanteDiscoveredDto[]>('/api/imprimantes/discover');
+      const count = parseInt(res.headers['x-scan-subnets'] ?? '1', 10);
+      setSubnetCount(count);
+      setDiscovered(res.data);
       setDrawerOpen(true);
-      if (data.length === 0) message.info('Aucune imprimante découverte sur le réseau.');
+      if (res.data.length === 0)
+        message.info(`Aucune imprimante découverte sur ${count} sous-réseau(x) scanné(s).`);
     } catch {
       message.error('Erreur lors de la découverte des imprimantes');
     } finally {
@@ -255,7 +261,7 @@ export default function ImprimantesPage() {
 
       {/* Drawer découverte automatique */}
       <Drawer
-        title={`Imprimantes découvertes (${discovered.length})`}
+        title={`Imprimantes découvertes (${discovered.length}) — ${subnetCount} sous-réseau(x) scanné(s)`}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         width={480}
@@ -277,13 +283,18 @@ export default function ImprimantesPage() {
               }}
             >
               <Tag color={imp.source === 'windows' ? 'blue' : 'cyan'} style={{ flexShrink: 0 }}>
-                {imp.source === 'windows' ? 'Windows' : 'Réseau'}
+                {imp.source === 'windows' ? 'Windows' : (imp.sousReseau ?? 'Réseau')}
               </Tag>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{imp.adresseIP}</div>
                 {imp.nomImprimante && (
                   <div style={{ fontSize: 11, color: 'var(--text-muted, #64748b)' }}>
                     {imp.nomImprimante}
+                  </div>
+                )}
+                {imp.port && imp.port !== 9100 && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted, #64748b)' }}>
+                    Port {imp.port} ({imp.port === 515 ? 'LPD' : 'IPP'})
                   </div>
                 )}
               </div>
