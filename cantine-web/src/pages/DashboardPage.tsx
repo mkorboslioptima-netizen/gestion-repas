@@ -277,6 +277,8 @@ export default function DashboardPage() {
           <Button onClick={handleExportGlobal} loading={exportGlobalLoading} type="primary" ghost>
             Export résumé
           </Button>
+        </RoleGate>
+        <RoleGate allowed={['AdminSEBN', 'ResponsableCantine']}>
           <Button onClick={handleExportExcel} loading={exportLoading} type="primary" ghost>
             Export détaillé
           </Button>
